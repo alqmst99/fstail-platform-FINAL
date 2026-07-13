@@ -1,0 +1,312 @@
+// prisma/schema.prisma
+// FSTail Platform — Single source of truth for all database models
+// Phase 2 Scaffold — full schema from Architecture Document §5
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  ANALYST
+  CLIENT
+}
+
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum ClientStatus {
+  LEAD
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum AuditStatus {
+  DRAFT
+  IN_PROGRESS
+  DONE
+  ARCHIVED
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum ProposalFramework {
+  AIDA
+  PAS
+  BAB
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+// ─── Core Tables ──────────────────────────────────────────────────────────────
+
+model Workspace {
+  id        String    @id @default(uuid())
+  name      String
+  slug      String    @unique
+  ownerId   String    @map("owner_id")
+  plan      Plan      @default(FREE)
+  settings  Json      @default("{}")
+  createdAt DateTime  @default(now()) @map("created_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  // Relations
+  owner      User        @relation("WorkspaceOwner", fields: [ownerId], references: [id])
+  users      User[]      @relation("WorkspaceMembers")
+  clients    Client[]
+  projects   Project[]
+  audits     Audit[]
+  radarScans RadarScan[]
+  proposals  Proposal[]
+  reports    Report[]
+
+  @@map("workspaces")
+}
+
+model User {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  passwordHash        String    @map("password_hash")
+  displayName         String    @map("display_name")
+  role                Role      @default(ANALYST)
+  workspaceId         String?   @map("workspace_id")
+  emailVerifiedAt     DateTime? @map("email_verified_at")
+  lastLoginAt         DateTime? @map("last_login_at")
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+
+  // Relations
+  workspace         Workspace?     @relation("WorkspaceMembers", fields: [workspaceId], references: [id])
+  ownedWorkspaces   Workspace[]    @relation("WorkspaceOwner")
+  refreshTokens     RefreshToken[]
+  createdClients    Client[]       @relation("ClientCreatedBy")
+  createdAudits     Audit[]        @relation("AuditCreatedBy")
+  createdProposals  Proposal[]
+  createdReports    Report[]
+  emailVerificationToken EmailVerificationToken?
+  passwordResetToken     PasswordResetToken?
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  revokedAt DateTime? @map("revoked_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(uuid())
+  token     String   @unique @default(uuid())
+  userId    String   @unique @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("email_verification_tokens")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  token     String   @unique @default(uuid())
+  userId    String   @unique @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+// ─── CRM ──────────────────────────────────────────────────────────────────────
+
+model Client {
+  id          String       @id @default(uuid())
+  workspaceId String       @map("workspace_id")
+  name        String
+  email       String?
+  phone       String?
+  website     String?
+  status      ClientStatus @default(LEAD)
+  notes       String?
+  metadata    Json         @default("{}")
+  createdById String       @map("created_by")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  deletedAt   DateTime?    @map("deleted_at")
+
+  // Relations
+  workspace  Workspace  @relation(fields: [workspaceId], references: [id])
+  createdBy  User       @relation("ClientCreatedBy", fields: [createdById], references: [id])
+  projects   Project[]
+  audits     Audit[]
+
+  @@map("clients")
+}
+
+model Project {
+  id          String        @id @default(uuid())
+  workspaceId String        @map("workspace_id")
+  clientId    String?       @map("client_id")
+  title       String
+  description String?
+  status      ProjectStatus @default(ACTIVE)
+  metadata    Json          @default("{}")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  deletedAt   DateTime?     @map("deleted_at")
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  client    Client?   @relation(fields: [clientId], references: [id])
+  audits    Audit[]
+
+  @@map("projects")
+}
+
+// ─── Audit System ─────────────────────────────────────────────────────────────
+
+model AuditTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  sections    Json     // Array of { key, label, weight, criteria[] }
+  isDefault   Boolean  @default(false) @map("is_default")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  audits Audit[]
+
+  @@map("audit_templates")
+}
+
+model Audit {
+  id          String      @id @default(uuid())
+  workspaceId String      @map("workspace_id")
+  clientId    String?     @map("client_id")
+  projectId   String?     @map("project_id")
+  templateId  String?     @map("template_id")
+  title       String
+  status      AuditStatus @default(DRAFT)
+  generalInfo Json        @default("{}") @map("general_info")
+  // sections: Array of { key, score, observations, evidenceUrls[] }
+  sections    Json        @default("[]")
+  finalScore  Int?        @map("final_score")
+  // Optimistic locking — increment on every save, reject if mismatch
+  version     Int         @default(1)
+  createdById String      @map("created_by")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  deletedAt   DateTime?   @map("deleted_at")
+
+  // Relations
+  workspace Workspace      @relation(fields: [workspaceId], references: [id])
+  client    Client?        @relation(fields: [clientId], references: [id])
+  project   Project?       @relation(fields: [projectId], references: [id])
+  template  AuditTemplate? @relation(fields: [templateId], references: [id])
+  createdBy User           @relation("AuditCreatedBy", fields: [createdById], references: [id])
+
+  @@map("audits")
+}
+
+// ─── Radar Scanner ────────────────────────────────────────────────────────────
+
+model RadarScan {
+  id          String   @id @default(uuid())
+  workspaceId String   @map("workspace_id")
+  userId      String   @map("user_id")
+  sourceUrl   String?  @map("source_url")
+  keyword     String?
+  rawCount    Int      @default(0) @map("raw_count")
+  validCount  Int      @default(0) @map("valid_count")
+  // Array of filtered Freelancer project objects
+  projects    Json     @default("[]")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  workspace Workspace  @relation(fields: [workspaceId], references: [id])
+  proposals Proposal[]
+
+  @@map("radar_scans")
+}
+
+model Proposal {
+  id                String            @id @default(uuid())
+  workspaceId       String            @map("workspace_id")
+  scanId            String?           @map("scan_id")
+  projectIdExternal String?           @map("project_id_external")
+  projectTitle      String            @map("project_title")
+  projectUrl        String?           @map("project_url")
+  framework         ProposalFramework @default(AIDA)
+  proposalText      String            @map("proposal_text")
+  suggestedPrice    Int?              @map("suggested_price")
+  deliveryDays      Int?              @map("delivery_days")
+  difficulty        Difficulty?
+  clientSummary     String?           @map("client_summary")
+  checklist         Json              @default("[]")
+  modelUsed         String?           @map("model_used")
+  createdById       String            @map("created_by")
+  createdAt         DateTime          @default(now()) @map("created_at")
+
+  // Relations
+  workspace Workspace  @relation(fields: [workspaceId], references: [id])
+  scan      RadarScan? @relation(fields: [scanId], references: [id])
+  createdBy User       @relation(fields: [createdById], references: [id])
+
+  @@map("proposals")
+}
+
+// ─── Reports ──────────────────────────────────────────────────────────────────
+
+model Report {
+  id            String    @id @default(uuid())
+  workspaceId   String    @map("workspace_id")
+  title         String
+  // Flexible content — references audit IDs, scan IDs, etc.
+  content       Json      @default("{}")
+  // Shareable client portal token — null until published
+  portalToken   String?   @unique @map("portal_token")
+  portalTokenExpiresAt DateTime? @map("portal_token_expires_at")
+  createdById   String    @map("created_by")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  createdBy User      @relation(fields: [createdById], references: [id])
+
+  @@map("reports")
+}

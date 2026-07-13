@@ -1,0 +1,117 @@
+{
+  "name": "fstail-desktop",
+  "productName": "FSTail Platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FSTail Solutions — Professional web audit and freelance management platform",
+  "author": {
+    "name": "FSTail Solutions",
+    "email": "dev@fstailsolutions.com.ar"
+  },
+  "main": "src/main.js",
+  "scripts": {
+    "dev": "electron .",
+    "dev:web": "next dev --port 3000",
+    "build:web": "next build",
+    "build:electron": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "build:all": "electron-builder --win --mac --linux",
+    "release": "node scripts/release.js",
+    "clean": "rm -rf dist build .next out",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0",
+    "electron-updater": "^6.3.9"
+  },
+  "devDependencies": {
+    "electron": "^33.3.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.fstailsolutions.platform",
+    "productName": "FSTail Platform",
+    "copyright": "Copyright © 2025 FSTail Solutions",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "src/**/*",
+      "package.json",
+      "!src/**/*.test.*",
+      "!node_modules/electron-builder/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../../apps/web/.next/standalone",
+        "to": "web",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "../../apps/web/public",
+        "to": "web/public",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "../../apps/web/.next/static",
+        "to": "web/.next/static",
+        "filter": ["**/*"]
+      }
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "fstail-solutions",
+      "repo": "fstail-platform",
+      "releaseType": "release"
+    },
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "assets/icon.ico",
+      "signingHashAlgorithms": ["sha256"],
+      "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeader": "assets/installer-header.bmp",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "FSTail Platform",
+      "menuCategory": "FSTail Solutions",
+      "license": "LICENSE.txt",
+      "perMachine": false
+    },
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] }
+      ],
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.productivity",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "assets/entitlements.mac.plist",
+      "entitlementsInherit": "assets/entitlements.mac.plist"
+    },
+    "dmg": {
+      "contents": [
+        { "x": 130, "y": 220 },
+        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+      ],
+      "window": { "width": 540, "height": 380 }
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "assets/icon.png",
+      "category": "Office",
+      "synopsis": "Professional web audit and freelance management platform"
+    },
+    "afterSign": "scripts/notarize.js"
+  }
+}

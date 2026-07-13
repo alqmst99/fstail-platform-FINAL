@@ -1,0 +1,52 @@
+/* apps/web/app/portal/print.css */
+/* Imported by the portal layout — ensures clean PDF output via browser Print > Save as PDF */
+
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    background: white !important;
+    color: #1e293b !important;
+  }
+
+  /* Hide non-print elements */
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Force page breaks before major sections */
+  .audit-summary-block {
+    page-break-inside: avoid;
+  }
+
+  /* Score bars — use gray fallback for non-color printers */
+  .score-bar {
+    border: 1px solid #cbd5e1 !important;
+  }
+
+  /* Links */
+  a {
+    color: #1e293b !important;
+    text-decoration: none !important;
+  }
+
+  /* Headers */
+  header {
+    border-bottom: 1px solid #e2e8f0 !important;
+    background: white !important;
+  }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid #e2e8f0 !important;
+  }
+
+  /* Page margins */
+  @page {
+    margin: 20mm;
+    size: A4;
+  }
+}

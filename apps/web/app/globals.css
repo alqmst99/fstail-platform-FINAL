@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-gold: theme('colors.gold.500');
+    --color-surface-900: theme('colors.surface.900');
+  }
+
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    @apply bg-surface-900 text-surface-50;
+  }
+}

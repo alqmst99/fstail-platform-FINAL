@@ -1,0 +1,200 @@
+# .github/workflows/release.yml
+# Triggered by a version tag push (e.g. v1.0.1).
+# Builds the Next.js web app, then packages Electron installers
+# for Windows (NSIS), macOS (DMG), and Linux (AppImage + deb).
+# Publishes artifacts to GitHub Releases — electron-updater picks them up.
+#
+# Required GitHub Secrets:
+#   GH_TOKEN               — GitHub personal access token with repo write
+#   APPLE_ID               — (macOS only) Apple ID for notarization
+#   APPLE_APP_SPECIFIC_PASSWORD — (macOS only)
+#   APPLE_TEAM_ID          — (macOS only)
+#   CSC_LINK               — (optional) Base64 .p12 signing cert
+#   CSC_KEY_PASSWORD       — (optional) Signing cert password
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+
+  # ── Step 1: Build Next.js standalone bundle ────────────────────────
+  build-web:
+    name: Build Next.js
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Next.js (standalone)
+        working-directory: apps/web
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+          NEXTAUTH_URL: http://localhost:3000
+
+      - name: Upload web build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: |
+            apps/web/.next/standalone
+            apps/web/.next/static
+            apps/web/public
+          retention-days: 1
+
+  # ── Step 2: Build Electron — Windows ──────────────────────────────
+  build-windows:
+    name: Build Windows (NSIS)
+    needs: build-web
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Download web build
+        uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: apps/web
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows installer
+        working-directory: apps/desktop
+        run: npm run build:win
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: apps/desktop/dist/*.exe
+
+  # ── Step 3: Build Electron — macOS ────────────────────────────────
+  build-macos:
+    name: Build macOS (DMG)
+    needs: build-web
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Download web build
+        uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: apps/web
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build macOS DMG
+        working-directory: apps/desktop
+        run: npm run build:mac
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-installer
+          path: apps/desktop/dist/*.dmg
+
+  # ── Step 4: Build Electron — Linux ────────────────────────────────
+  build-linux:
+    name: Build Linux (AppImage + deb)
+    needs: build-web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Download web build
+        uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: apps/web
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Linux packages
+        working-directory: apps/desktop
+        run: npm run build:linux
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-installer
+          path: |
+            apps/desktop/dist/*.AppImage
+            apps/desktop/dist/*.deb
+
+  # ── Step 5: Create GitHub Release ─────────────────────────────────
+  publish-release:
+    name: Publish GitHub Release
+    needs: [build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Get version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: FSTail Platform ${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            release-artifacts/windows-installer/*.exe
+            release-artifacts/macos-installer/*.dmg
+            release-artifacts/linux-installer/*.AppImage
+            release-artifacts/linux-installer/*.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
