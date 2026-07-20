@@ -98,7 +98,7 @@ export class ClientsService {
         ...dto,
         workspaceId,
         createdById: userId,
-        metadata: dto.metadata ?? {},
+          metadata: (dto.metadata ?? {}) as any,
       },
     });
   }
@@ -110,7 +110,7 @@ export class ClientsService {
 
     return this.prisma.client.update({
       where: { id },
-      data: dto,
+      data: dto as any,
     });
   }
 
@@ -140,12 +140,13 @@ export class ClientsService {
       this.prisma.client.groupBy({
         by: ['status'],
         where: { workspaceId, deletedAt: null },
-        _count: { status: true },
+          orderBy: { status: 'asc' },
+          _count: { status: true },
       }),
     ]);
 
     const statusMap = Object.fromEntries(
-      byStatus.map((s: { status: string; _count: { status: number } }) => [s.status, s._count.status]),
+        byStatus.map((s: any) => [s.status, s._count?.status ?? 0]),
     );
 
     return {

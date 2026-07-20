@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "module": "commonjs",
-    "moduleResolution": "node",
+    "moduleResolution": "node10",
     "target": "ES2022",
     "lib": ["ES2022"],
     "outDir": "./dist",
@@ -10,6 +10,7 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "strict": true,
+    "exactOptionalPropertyTypes": false,
     "strictNullChecks": true,
     "noImplicitAny": true,
     "skipLibCheck": true,
@@ -20,6 +21,6 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src/**/*", "test/**/*", "prisma/seed.ts"],
+  "include": ["src/**/*", "test/**/*", "src/prisma/seed.ts"],
   "exclude": ["node_modules", "dist"]
 }

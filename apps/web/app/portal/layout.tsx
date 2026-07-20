@@ -3,6 +3,7 @@
 // No auth check, no sidebar, no platform chrome.
 
 import type { Metadata } from 'next';
+// @ts-ignore: allow importing plain CSS in this standalone portal layout
 import './print.css';
 
 export const metadata: Metadata = {

@@ -40,7 +40,9 @@ export class AuthService {
   // ── Login ──────────────────────────────────────────────────────────
 
   async login(email: string, password: string): Promise<{ tokens: TokenPair; user: AuthUser }> {
-    const user = await this.usersService.findByEmail(email);
+    email = email.trim().toLowerCase();
+
+const user = await this.usersService.findByEmail(email);
 
     if (!user) {
       await bcryptjs.compare(password, '$2b$12$placeholder.hash.for.timing.safety');
@@ -81,8 +83,9 @@ export class AuthService {
 
   // ── Register ───────────────────────────────────────────────────────
 
-  async register(dto: RegisterDto): Promise<{ user: AuthUser }> {
-    const existing = await this.usersService.findByEmail(dto.email);
+  async register(dto: RegisterDto): Promise<{ user: AuthUser }> {dto.email = dto.email.trim().toLowerCase();
+
+const existing = await this.usersService.findByEmail(dto.email);
     if (existing) throw new ConflictException('Email already registered');
 
     const passwordHash = await bcryptjs.hash(dto.password, BCRYPT_ROUNDS);
@@ -123,11 +126,18 @@ export class AuthService {
   // ── Refresh rotation ───────────────────────────────────────────────
 
   async refresh(userId: string, email: string, role: Role, refreshTokenId: string): Promise<TokenPair> {
-    await this.prisma.refreshToken.update({
-      where: { id: refreshTokenId },
-      data: { revokedAt: new Date() },
-    });
-    return this.issueTokenPair(userId, email, role);
+await this.prisma.refreshToken.update({
+  where: {
+    id: refreshTokenId,
+  },
+  data: {
+    revokedAt: new Date(),
+  },
+});
+
+this.logger.debug(`Refresh token rotated for ${userId}`);
+
+return this.issueTokenPair(userId, email, role);
   }
 
   // ── Logout ─────────────────────────────────────────────────────────

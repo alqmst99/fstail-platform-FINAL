@@ -27,6 +27,7 @@
     "electron-updater": "^6.3.9"
   },
   "devDependencies": {
+    "@electron/notarize": "^2.5.0",
     "electron": "^33.3.1",
     "electron-builder": "^25.1.8"
   },
@@ -48,17 +49,23 @@
       {
         "from": "../../apps/web/.next/standalone",
         "to": "web",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "../../apps/web/public",
         "to": "web/public",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "../../apps/web/.next/static",
         "to": "web/.next/static",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "publish": {
@@ -69,10 +76,17 @@
     },
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "assets/icon.ico",
-      "signingHashAlgorithms": ["sha256"],
+      "signingHashAlgorithms": [
+        "sha256"
+      ],
       "verifyUpdateCodeSignature": false
     },
     "nsis": {
@@ -90,7 +104,13 @@
     },
     "mac": {
       "target": [
-        { "target": "dmg", "arch": ["x64", "arm64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ],
       "icon": "assets/icon.icns",
       "category": "public.app-category.productivity",
@@ -101,13 +121,27 @@
     },
     "dmg": {
       "contents": [
-        { "x": 130, "y": 220 },
-        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
       ],
-      "window": { "width": 540, "height": 380 }
+      "window": {
+        "width": 540,
+        "height": 380
+      }
     },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "icon": "assets/icon.png",
       "category": "Office",
       "synopsis": "Professional web audit and freelance management platform"

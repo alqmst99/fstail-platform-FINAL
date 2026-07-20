@@ -93,7 +93,7 @@ export class FreelancerClient {
       ...(dto.keyword && { query: dto.keyword }),
     });
 
-    return `${FREELANCER_SEARCH_BASE}?${params.toString()}`;
+    return `${FREELANCER_SEARCH_BASE}?${params.toString()}&`;
   }
 
   private normalise(raw: unknown): FreelancerProject | null {

@@ -285,6 +285,7 @@ export class AuditService {
       this.prisma.audit.groupBy({
         by: ['status'],
         where: { workspaceId, deletedAt: null },
+        orderBy: { status: 'asc' },
         _count: { status: true },
       }),
       this.prisma.audit.aggregate({
@@ -294,7 +295,7 @@ export class AuditService {
     ]);
 
     const statusMap = Object.fromEntries(
-      byStatus.map((s: {status: string; _count: {status: number}}) => [s.status, s._count.status]),
+      byStatus.map((s: any) => [s.status, s._count?.status ?? 0]),
     );
 
     return {

@@ -212,6 +212,7 @@ export class RadarService {
       this.prisma.proposal.groupBy({
         by: ['framework'],
         where: { workspaceId },
+        orderBy: { framework: 'asc' },
         _count: { framework: true },
       }),
     ]);
@@ -220,7 +221,7 @@ export class RadarService {
       totalScans:     scans,
       totalProposals: proposals,
       byFramework: Object.fromEntries(
-        byFramework.map((f: { framework: string; _count: { framework: number } }) => [f.framework, f._count.framework]),
+        byFramework.map((f: any) => [f.framework, f._count?.framework ?? 0]),
       ),
     };
   }

@@ -38,22 +38,21 @@ function setCookies(
   res: Response,
   tokens: { accessToken: string; refreshToken: string },
   isProd: boolean,
-) {
+) 
+{
   res.cookie('accessToken', tokens.accessToken, {
     httpOnly: true,
     secure: isProd,
     sameSite: 'strict',
-    maxAge: 15 * 60 * 1000, // 15 min
+    maxAge: 15 * 60 * 60 * 1000, // 15 min
   });
 
-  res.cookie('refreshToken', tokens.refreshToken, {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: 'strict',
-    path: '/api/auth/refresh', // scoped — only sent to refresh endpoint
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-  });
-}
+res.cookie('accessToken', tokens.accessToken, {
+  httpOnly: true,
+  secure: isProd,
+  sameSite: 'strict',
+  maxAge: 15 * 60 * 1000, // 15 min ✅
+});}
 
 function clearCookies(res: Response) {
   res.clearCookie('accessToken');
@@ -122,7 +121,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const { id, email, role, refreshTokenId } = req.user;
-    const tokens = await this.authService.refresh(id, email, role as any, refreshTokenId);
+    const tokens = await this.authService.refresh(id, email, role, refreshTokenId);
     setCookies(res, tokens, this.isProd);
     return { message: 'Token refreshed' };
   }

@@ -78,7 +78,7 @@ export class SettingsController {
       select: { settings: true },
     });
 
-    const existing = (workspace?.settings ?? {}) as Record<string, unknown>;
+    const existing = (workspace?.settings ?? {}) as any;
 
     await this.prisma.workspace.update({
       where: { id: workspaceId },
@@ -111,7 +111,7 @@ export class SettingsController {
       select: { settings: true },
     });
 
-    const existing = (workspace?.settings ?? {}) as Record<string, unknown>;
+    const existing = (workspace?.settings ?? {}) as any;
     delete existing['groqKeyConfigured'];
 
     await this.prisma.workspace.update({

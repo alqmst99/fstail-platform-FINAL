@@ -37,6 +37,7 @@ const WEB_URL = isDev
   ? 'http://localhost:3000'
   : `http://localhost:${WEB_PORT}`;
 
+
 const store = new Store();
 
 // ── Single instance lock ──────────────────────────────────────────────
@@ -118,64 +119,31 @@ async function waitForServer(url, retries = 40, delayMs = 500) {
 }
 
 // ── Window creation ───────────────────────────────────────────────────
-
+// Al final del archivo, reemplaza la función createWindow o la carga
 function createWindow() {
-  const winBounds = store.get('windowBounds', {
+  mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-  });
-
-  mainWindow = new BrowserWindow({
-    ...winBounds,
-    minWidth: 960,
-    minHeight: 600,
-    backgroundColor, // R-14: prevents white flash
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
-    show: false, // Show after content loads — prevents blank flash
+    backgroundColor: backgroundColor,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
-      webSecurity: true,
-      allowRunningInsecureContent: false,
-    },
-  });
-
-  // Restore window position if saved
-  const savedBounds = store.get('windowBounds');
-  if (savedBounds?.x !== undefined) {
-    mainWindow.setBounds(savedBounds);
-  }
-
-  // Show window only when content is ready — no white flash
-  mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
-    if (isDev) mainWindow.webContents.openDevTools({ mode: 'detach' });
-  });
-
-  // Save window size/position on close
-  mainWindow.on('close', () => {
-    store.set('windowBounds', mainWindow.getBounds());
-  });
-
-  mainWindow.on('closed', () => { mainWindow = null; });
-
-  // Prevent navigation to external URLs inside the app
-  mainWindow.webContents.on('will-navigate', (event, url) => {
-    if (!url.startsWith(WEB_URL)) {
-      event.preventDefault();
-      shell.openExternal(url); // Open in browser instead
+      contextIsolation: true,
     }
   });
 
-  // Same for new window requests
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
-    return { action: 'deny' };
-  });
+  const loadApp = () => {
+    mainWindow.loadURL('http://localhost:3000');
+  };
 
-  mainWindow.loadURL(WEB_URL);
+  // Esperar un poco más en desarrollo
+  if (isDev) {
+    setTimeout(loadApp, 2000); // da tiempo a Next.js
+  } else {
+    loadApp();
+  }
+
+  mainWindow.webContents.openDevTools(); // útil para debug
 }
 
 // ── System tray ───────────────────────────────────────────────────────

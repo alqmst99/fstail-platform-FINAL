@@ -11,49 +11,42 @@ import {
   MaxLength,
   IsBoolean,
   IsIn,
+  IsObject,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-type ProposalFramework = 'AIDA' | 'PAS' | 'BAB';
-const FRAMEWORKS: ProposalFramework[] = ['AIDA', 'PAS', 'BAB'];
-type Difficulty = 'EASY' | 'MEDIUM' | 'HARD';
-const DIFFICULTIES: Difficulty[] = ['EASY', 'MEDIUM', 'HARD'];
 import { PaginationDto } from '../../common/dto/pagination.dto';
 
-// ── Scan ─────────────────────────────────────────────────────────────
+type ProposalFramework = 'AIDA' | 'PAS' | 'BAB';
+const FRAMEWORKS: ProposalFramework[] = ['AIDA', 'PAS', 'BAB'];
 
 export class ScanDto {
-  @ApiPropertyOptional({
-    description: 'Full Freelancer search URL (alternative to keyword)',
-    example: 'https://www.freelancer.com/jobs/web-development/?languages=en',
-  })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsUrl()
   sourceUrl?: string;
 
-  @ApiPropertyOptional({
-    description: 'Keyword — used to build URL if sourceUrl not provided',
-    example: 'react typescript',
-  })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   @MaxLength(200)
   keyword?: string;
 
-  @ApiPropertyOptional({ default: 50, description: 'Max projects to fetch per scan' })
+  @ApiPropertyOptional({ default: 50 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(10)
   @Max(200)
-  limit?: number;
+  limit?: number = 50;
 
-  @ApiPropertyOptional({ default: false, description: 'Only return escrow-supported projects' })
+  @ApiPropertyOptional({ default: false })
   @IsOptional()
   @IsBoolean()
-  escrowOnly?: boolean;
+  escrowOnly?: boolean = false;
 
-  @ApiPropertyOptional({ default: 0 })
+  @ApiPropertyOptional()
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -67,39 +60,43 @@ export class ScanDto {
   @Min(0)
   maxBudget?: number;
 
-  @ApiPropertyOptional({ type: [String], description: 'Required skill tags' })
+  @ApiPropertyOptional({ type: [String] })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   requiredSkills?: string[];
 }
 
-// ── Generate proposal ─────────────────────────────────────────────────
-
 export class GenerateProposalDto {
-  @ApiProperty({ description: 'Raw project data from a radar scan result' })
-  project!: Record<string, unknown>;
+  @ApiProperty({
+    description: 'Objeto completo del proyecto obtenido del radar',
+    example: {
+      id: 40594129,
+      title: "Fix Missing Google Business Listing",
+      // ... resto del objeto
+    }
+  })
+  @IsObject()
+  // @ValidateNested()  ← Comentado / eliminado (causa el error)
+  // @Type(() => Object) ← No es necesario aquí
+  project!: Record<string, any>;
 
-  @ApiPropertyOptional({ enum: ['AIDA', 'PAS', 'BAB'], default: 'AIDA' })
+  @ApiPropertyOptional({ enum: FRAMEWORKS, default: 'AIDA' })
   @IsOptional()
   @IsIn(FRAMEWORKS)
-  framework?: ProposalFramework;
+  framework?: ProposalFramework = 'AIDA';
 
-  @ApiPropertyOptional({
-    description: 'Custom context to include in the prompt (your skills, tone, etc.)',
-  })
+  @ApiPropertyOptional({ description: 'Contexto adicional de tu agencia' })
   @IsOptional()
   @IsString()
   @MaxLength(2000)
   context?: string;
 
-  @ApiPropertyOptional({ description: 'Scan ID to link proposal to' })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()
   scanId?: string;
 }
-
-// ── Query scans ───────────────────────────────────────────────────────
 
 export class QueryScansDto extends PaginationDto {
   @ApiPropertyOptional()
@@ -108,10 +105,8 @@ export class QueryScansDto extends PaginationDto {
   keyword?: string;
 }
 
-// ── Query proposals ───────────────────────────────────────────────────
-
-export class QueryProposalsDto extends PaginationDto {
-  @ApiPropertyOptional({ enum: ['AIDA', 'PAS', 'BAB'] })
+export class QueryProposalsDto extends PaginationDto {   // ← Aquí estaba el problema
+  @ApiPropertyOptional({ enum: FRAMEWORKS })
   @IsOptional()
   @IsIn(FRAMEWORKS)
   framework?: ProposalFramework;

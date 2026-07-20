@@ -69,7 +69,7 @@ export class WorkspacesService {
       data: {
         ...(dto.name     && { name:     dto.name     }),
         ...(dto.slug     && { slug:     dto.slug     }),
-        ...(dto.settings && { settings: dto.settings }),
+        ...(dto.settings && { settings: dto.settings as any }),
       },
     });
   }

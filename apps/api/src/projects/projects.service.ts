@@ -88,7 +88,7 @@ export class ProjectsService {
       data: {
         ...dto,
         workspaceId,
-        metadata: dto.metadata ?? {},
+        metadata: (dto.metadata ?? {}) as any,
       },
       include: {
         client: { select: { id: true, name: true } },
@@ -112,7 +112,7 @@ export class ProjectsService {
 
     return this.prisma.project.update({
       where: { id },
-      data: dto,
+      data: dto as any,
       include: { client: { select: { id: true, name: true } } },
     });
   }
@@ -131,12 +131,13 @@ export class ProjectsService {
       this.prisma.project.groupBy({
         by: ['status'],
         where: { workspaceId, deletedAt: null },
+        orderBy: { status: 'asc' },
         _count: { status: true },
       }),
     ]);
 
     const statusMap = Object.fromEntries(
-      byStatus.map((s: { status: string; _count: { status: number } }) => [s.status, s._count.status]),
+      byStatus.map((s: any) => [s.status, s._count?.status ?? 0]),
     );
 
     return {
