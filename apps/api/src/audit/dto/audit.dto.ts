@@ -13,7 +13,7 @@ import {
   MinLength,
   IsUrl,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { PartialType, ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 type AuditStatus = 'DRAFT' | 'IN_PROGRESS' | 'DONE' | 'ARCHIVED';
 const AUDIT_STATUSES: AuditStatus[] = ['DRAFT', 'IN_PROGRESS', 'DONE', 'ARCHIVED'];
@@ -82,16 +82,19 @@ export class CreateAuditDto {
   @MaxLength(200)
   title!: string;
 
+  @Transform(({ value }) => value === '' ? undefined : value)
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()
   clientId?: string;
 
+  @Transform(({ value }) => value === '' ? undefined : value)
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()
   projectId?: string;
 
+  @Transform(({ value }) => value === '' ? undefined : value)
   @ApiPropertyOptional({ description: 'Use null for default template' })
   @IsOptional()
   @IsUUID()

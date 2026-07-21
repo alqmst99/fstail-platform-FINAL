@@ -33,13 +33,13 @@ export class ScanDto {
   @MaxLength(200)
   keyword?: string;
 
-  @ApiPropertyOptional({ default: 50 })
+  @ApiPropertyOptional({ default: 80 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(10)
   @Max(200)
-  limit?: number = 50;
+  limit?: number = 80;
 
   @ApiPropertyOptional({ default: false })
   @IsOptional()

@@ -66,7 +66,7 @@ export class RadarService {
     const [data, total] = await this.prisma.$transaction([
       this.prisma.radarScan.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: 'asc' },
         skip: query.skip,
         take: query.pageSize,
         select: {
@@ -92,7 +92,7 @@ export class RadarService {
       where: { id, workspaceId },
       include: {
         proposals: {
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: 'asc' },
           select: {
             id:             true,
             projectTitle:   true,
@@ -162,7 +162,7 @@ export class RadarService {
     const [data, total] = await this.prisma.$transaction([
       this.prisma.proposal.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: 'asc' },
         skip: query.skip,
         take: query.pageSize,
         select: {

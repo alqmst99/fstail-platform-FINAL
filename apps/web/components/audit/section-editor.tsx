@@ -26,24 +26,33 @@ export function SectionEditor({ audit, onSave }: SectionEditorProps) {
   }, []);
 
   const save = useCallback(async (updatedSections?: AuditSection[]) => {
-    const toSave = updatedSections ?? sections;
-    setSaving(true);
-    setError('');
-    try {
-      const result = await auditApi.updateSections(audit.id, toSave, version);
-      setVersion(result.version);
-      setLastSaved(new Date());
-      onSave(result);
-    } catch (err: any) {
-      if (err.message?.includes('409') || err.message?.includes('conflict')) {
-        setError('Another user saved this audit. Please reload the page to get the latest version.');
-      } else {
-        setError(err.message ?? 'Failed to save');
-      }
-    } finally {
-      setSaving(false);
+  // ←←← ESTO ES LO MÁS IMPORTANTE
+  const toSave = (updatedSections ?? sections).map((section) => ({
+    key: section.key,                    // identificador
+    score: section.score,                // campo que se puede modificar
+    observations: section.observations,  // campo que se puede modificar
+    // NO enviar: label, weight, ni ningún otro campo
+  }));
+
+  setSaving(true);
+  setError('');
+
+  try {
+    const result = await auditApi.updateSections(audit.id, toSave, version);
+    
+    setVersion(result.version);
+    setLastSaved(new Date());
+    onSave(result);
+  } catch (err: any) {
+    if (err.message?.includes('409') || err.message?.includes('conflict')) {
+      setError('Otro usuario guardó este audit. Por favor recarga la página.');
+    } else {
+      setError(err.message ?? 'Error al guardar');
     }
-  }, [audit.id, sections, version, onSave]);
+  } finally {
+    setSaving(false);
+  }
+}, [audit.id, sections, version, onSave]);
 
   const progress = sections.filter((s) => s.score !== null).length;
   const progressPct = sections.length > 0 ? (progress / sections.length) * 100 : 0;

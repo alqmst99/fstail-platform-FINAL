@@ -86,14 +86,13 @@ export class FreelancerClient {
 
     // Build from keyword
     const params = new URLSearchParams({
-      limit: String(dto.limit ?? 50),
+      limit: String(dto.limit ?? 80),
       job_details: 'true',
       user_details: 'true',
-      languages: 'en',
-      ...(dto.keyword && { query: dto.keyword }),
+      ...(dto.keyword && { q: dto.keyword }),
     });
 
-    return `${FREELANCER_SEARCH_BASE}?${params.toString()}&`;
+    return `${FREELANCER_SEARCH_BASE}?${params.toString()}&types=hourly,fixed&projectLanguages=es,en&projectSort=fewestBids&projectSkills=9,17,33,38,69,77,120,219,305,323,335,481,500,598,758,759,788,997,999,1031,1042,1254,1365,1623,1832,2037,2164,2376,2839,3005`
   }
 
   private normalise(raw: unknown): FreelancerProject | null {

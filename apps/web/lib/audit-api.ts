@@ -22,6 +22,12 @@ export interface ScoreResult {
   isComplete: boolean;
 }
 
+export type AuditSectionUpdate = {
+  key: string;
+  score: number | null;
+  observations: string;
+};
+
 export interface AuditSummary {
   id: string;
   title: string;
