@@ -34,13 +34,24 @@ export default function RadarPage() {
     setScanning(true);
     setScanResult(null);
     try {
-      const result = await radarApi.scan({
-        keyword:   keyword || undefined,
-        escrowOnly,
-        minBudget: minBudget ? Number(minBudget) : undefined,
-        maxBudget: maxBudget ? Number(maxBudget) : undefined,
-        limit: 50,
-      });
+     const params: Parameters<typeof radarApi.scan>[0] = {
+  escrowOnly,
+  limit: 80,
+};
+
+if (keyword.trim()) {
+  params.keyword = keyword;
+}
+
+if (minBudget) {
+  params.minBudget = Number(minBudget);
+}
+
+if (maxBudget) {
+  params.maxBudget = Number(maxBudget);
+}
+
+const result = await radarApi.scan(params);
       setScanResult(result);
     } catch (err: any) {
       setScanError(err.message ?? 'Scan failed');
