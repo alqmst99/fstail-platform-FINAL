@@ -65,14 +65,13 @@ model Workspace {
   id        String    @id @default(uuid())
   name      String
   slug      String    @unique
-  ownerId   String    @map("owner_id")
+  ownerId   String?   @map("owner_id")
   plan      Plan      @default(FREE)
   settings  Json      @default("{}")
   createdAt DateTime  @default(now()) @map("created_at")
   deletedAt DateTime? @map("deleted_at")
 
-  // Relations
-  owner      User        @relation("WorkspaceOwner", fields: [ownerId], references: [id])
+  owner      User?       @relation("WorkspaceOwner", fields: [ownerId], references: [id])
   users      User[]      @relation("WorkspaceMembers")
   clients    Client[]
   projects   Project[]

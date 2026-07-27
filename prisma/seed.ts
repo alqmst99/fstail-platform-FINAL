@@ -2,8 +2,6 @@
  * prisma/seed.ts
  * Creates the initial SUPER_ADMIN users and a default workspace.
  * Run with: npm run db:seed (from apps/api)
- *
- * Change credentials immediately after first run.
  */
 
 import { PrismaClient, Role, Plan } from '@prisma/client';
@@ -14,24 +12,32 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding database...');
 
-  // ── Default workspace ─────────────────────────────────────────────
+  const passwordHash = await bcrypt.hash('ChangeMe123!', 12);
+
+  // ─────────────────────────────────────────────────────────────
+  // 1. Crear Workspace SIN owner
+  // ─────────────────────────────────────────────────────────────
   const workspace = await prisma.workspace.upsert({
-    where: { slug: 'fstail-solutions' },
+    where: {
+      slug: 'fstail-solutions',
+    },
     update: {},
     create: {
       name: 'FSTail Solutions',
       slug: 'fstail-solutions',
       plan: Plan.PRO,
       settings: {},
-      ownerId: 'placeholder', // se actualiza después
+      ownerId: null,
     },
   });
 
-  const passwordHash = await bcrypt.hash('ChangeMe123!', 12);
-
-  // ── 1. Nahuel Nicolás Pierini (SUPER_ADMIN + Owner) ───────────────
+  // ─────────────────────────────────────────────────────────────
+  // 2. Crear Nahuel
+  // ─────────────────────────────────────────────────────────────
   const nahuel = await prisma.user.upsert({
-    where: { email: 'nahuel@fstailsolutions.com.ar' },
+    where: {
+      email: 'nahuel@fstailsolutions.com.ar',
+    },
     update: {},
     create: {
       email: 'nahuel@fstailsolutions.com.ar',
@@ -43,9 +49,13 @@ async function main() {
     },
   });
 
-  // ── 2. Ana Clara Ferrando (SUPER_ADMIN) ───────────────────────────
+  // ─────────────────────────────────────────────────────────────
+  // 3. Crear Ana
+  // ─────────────────────────────────────────────────────────────
   const ana = await prisma.user.upsert({
-    where: { email: 'anaclara@fstailsolutions.com.ar' },
+    where: {
+      email: 'anaclara@fstailsolutions.com.ar',
+    },
     update: {},
     create: {
       email: 'anaclara@fstailsolutions.com.ar',
@@ -57,47 +67,98 @@ async function main() {
     },
   });
 
-  // Actualizar el owner del workspace a Nahuel
+  // ─────────────────────────────────────────────────────────────
+  // 4. Asignar owner del Workspace
+  // ─────────────────────────────────────────────────────────────
   await prisma.workspace.update({
-    where: { id: workspace.id },
-    data: { ownerId: nahuel.id },
+    where: {
+      id: workspace.id,
+    },
+    data: {
+      ownerId: nahuel.id,
+    },
   });
 
-  // ── Default audit template ────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────
+  // 5. Template por defecto
+  // ─────────────────────────────────────────────────────────────
   const defaultTemplateId = 'a0000000-0000-0000-0000-000000000001';
+
   await prisma.auditTemplate.upsert({
-    where: { id: defaultTemplateId },
+    where: {
+      id: defaultTemplateId,
+    },
     update: {},
     create: {
       id: defaultTemplateId,
       name: 'Web Presence Audit',
-      description: 'Standard web audit covering performance, SEO, UX, security, and accessibility',
+      description:
+        'Standard web audit covering performance, SEO, UX, security, and accessibility',
       isDefault: true,
       sections: [
-        { key: 'performance', label: 'Performance', weight: 20, criteria: [] },
-        { key: 'seo', label: 'SEO & Visibility', weight: 20, criteria: [] },
-        { key: 'ux', label: 'UX & Design', weight: 20, criteria: [] },
-        { key: 'security', label: 'Security', weight: 20, criteria: [] },
-        { key: 'accessibility', label: 'Accessibility', weight: 10, criteria: [] },
-        { key: 'content', label: 'Content & Copy', weight: 10, criteria: [] },
+        {
+          key: 'performance',
+          label: 'Performance',
+          weight: 20,
+          criteria: [],
+        },
+        {
+          key: 'seo',
+          label: 'SEO & Visibility',
+          weight: 20,
+          criteria: [],
+        },
+        {
+          key: 'ux',
+          label: 'UX & Design',
+          weight: 20,
+          criteria: [],
+        },
+        {
+          key: 'security',
+          label: 'Security',
+          weight: 20,
+          criteria: [],
+        },
+        {
+          key: 'accessibility',
+          label: 'Accessibility',
+          weight: 10,
+          criteria: [],
+        },
+        {
+          key: 'content',
+          label: 'Content & Copy',
+          weight: 10,
+          criteria: [],
+        },
       ],
     },
   });
 
   console.log('');
   console.log('✅ Seed complete');
-  console.log(`   Workspace: FSTail Solutions (${workspace.id})`);
+  console.log(`Workspace: FSTail Solutions (${workspace.id})`);
   console.log('');
-  console.log('── Usuarios creados ──────────────────────────────');
-  console.log('1. Nahuel Nicolás Pierini (Owner + SUPER_ADMIN)');
-  console.log('   Email:    nahuel@fstailsolutions.com.ar');
+
+  console.log('Usuarios creados');
+  console.log('────────────────────────────────────────');
+
+  console.log('1. Nahuel Nicolás Pierini');
+  console.log('   Rol: SUPER_ADMIN');
+  console.log('   Owner: Sí');
+  console.log('   Email: nahuel@fstailsolutions.com.ar');
   console.log('   Password: ChangeMe123!');
   console.log('');
-  console.log('2. Ana Clara Ferrando (SUPER_ADMIN)');
-  console.log('   Email:    anaclara@fstailsolutions.com.ar');
+
+  console.log('2. Ana Clara Ferrando');
+  console.log('   Rol: SUPER_ADMIN');
+  console.log('   Owner: No');
+  console.log('   Email: anaclara@fstailsolutions.com.ar');
   console.log('   Password: ChangeMe123!');
-  console.log('─────────────────────────────────────────────────');
-  console.log('⚠️  Cambiá las contraseñas inmediatamente después del primer login.');
+  console.log('');
+
+  console.log('⚠️ Cambiá las contraseñas luego del primer login.');
 }
 
 main()
