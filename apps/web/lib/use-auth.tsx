@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { authApi, type AuthUser } from './api';
 
+
 interface AuthState {
   user: AuthUser | null;
   loading: boolean;
