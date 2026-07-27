@@ -89,9 +89,11 @@ function AuditSummaryBlock({
           <h3 className="text-base font-semibold text-surface-50">
             {String(data['title'] ?? 'Audit')}
           </h3>
-          {data['clientName'] && (
-            <p className="text-xs text-surface-400 mt-0.5">{String(data['clientName'])}</p>
-          )}
+          {Boolean(data['clientName']) && (
+  <p className="text-xs text-surface-400 mt-0.5">
+    {String(data['clientName'])}
+  </p>
+)}
         </div>
         <div className="flex items-center gap-4">
           {score !== null && (
