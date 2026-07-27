@@ -1,4 +1,3 @@
-export const dynamic = 'force-dynamic';
 'use client';
 // apps/web/app/(public)/verify-email/page.tsx
 
