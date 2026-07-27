@@ -56,3 +56,25 @@ prisma/migrations/dev.db-journal
 
 # Docker
 .docker/
+.env.example
+# Build outputs — no subir al repo
+apps/api/dist/
+apps/web/.next/
+apps/desktop/dist/
+
+# Env real — NUNCA al repo
+.env
+# Sí subir el ejemplo:
+# .env.example  → este sí va al repo
+
+# Node modules — se reinstalan con npm install
+node_modules/
+
+# Turbo cache
+.turbo/
+
+# Prisma engines
+apps/api/src/prisma/generated/
+apps/final.zip
+apps/api/dist
+final.zip

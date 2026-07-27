@@ -1,0 +1,14 @@
+[variables]
+NODE_VERSION = "20"
+
+[phases.install]
+cmds = ["npm install --legacy-peer-deps"]
+
+[phases.build]
+cmds = [
+  "npx prisma generate --schema=prisma/schema.prisma",
+  "cd apps/api && npm run build"
+]
+
+[start]
+cmd = "cd apps/api && node dist/main"
