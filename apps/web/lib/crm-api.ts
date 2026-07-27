@@ -90,9 +90,21 @@ export const clientsApi = {
   create: (data: { name: string; email?: string; phone?: string; website?: string; status?: ClientStatus; notes?: string }) =>
     api<Client>('/clients', { method: 'POST', body: JSON.stringify(data) }),
 
-  update: (id: string, data: Partial<Parameters<typeof clientsApi.create>[0]>) =>
-    api<Client>(`/clients/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-
+ update: (
+  id: string,
+  data: Partial<{
+    name: string;
+    email?: string;
+    phone?: string;
+    website?: string;
+    status?: ClientStatus;
+    notes?: string;
+  }>
+) =>
+  api<Client>(`/clients/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  }),
   delete: (id: string) => api<void>(`/clients/${id}`, { method: 'DELETE' }),
 };
 
@@ -109,8 +121,18 @@ export const projectsApi = {
   create: (data: { title: string; description?: string; clientId?: string; status?: ProjectStatus }) =>
     api<Project>('/projects', { method: 'POST', body: JSON.stringify(data) }),
 
-  update: (id: string, data: Partial<Parameters<typeof projectsApi.create>[0]>) =>
-    api<Project>(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-
+  update: (
+  id: string,
+  data: Partial<{
+    title: string;
+    description?: string;
+    clientId?: string;
+    status?: ProjectStatus;
+  }>
+) =>
+  api<Project>(`/projects/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  }),
   delete: (id: string) => api<void>(`/projects/${id}`, { method: 'DELETE' }),
 };
