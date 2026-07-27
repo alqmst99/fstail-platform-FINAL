@@ -12,3 +12,4 @@ export const IS_PUBLIC_KEY = 'isPublic';
  *   async login(...) {}
  */
 export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
+
