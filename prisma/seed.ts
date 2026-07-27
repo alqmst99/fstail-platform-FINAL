@@ -1,6 +1,6 @@
 /**
  * prisma/seed.ts
- * Creates the initial SUPER_ADMIN user and a default workspace.
+ * Creates the initial SUPER_ADMIN users and a default workspace.
  * Run with: npm run db:seed (from apps/api)
  *
  * Change credentials immediately after first run.
@@ -23,31 +23,44 @@ async function main() {
       slug: 'fstail-solutions',
       plan: Plan.PRO,
       settings: {},
-      // owner set after user creation
-      ownerId: 'placeholder', // will be updated below
+      ownerId: 'placeholder', // se actualiza después
     },
   });
 
-  // ── SUPER_ADMIN user ─────────────────────────────────────────────
   const passwordHash = await bcrypt.hash('ChangeMe123!', 12);
 
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@fstailsolutions.com.ar' },
+  // ── 1. Nahuel Nicolás Pierini (SUPER_ADMIN + Owner) ───────────────
+  const nahuel = await prisma.user.upsert({
+    where: { email: 'nahuel@fstailsolutions.com.ar' },
     update: {},
     create: {
-      email: 'admin@fstailsolutions.com.ar',
+      email: 'nahuel@fstailsolutions.com.ar',
       passwordHash,
-      displayName: 'FSTail Admin',
+      displayName: 'Nahuel Nicolás Pierini',
       role: Role.SUPER_ADMIN,
       workspaceId: workspace.id,
       emailVerifiedAt: new Date(),
     },
   });
 
-  // Update workspace owner to real admin ID
+  // ── 2. Ana Clara Ferrando (SUPER_ADMIN) ───────────────────────────
+  const ana = await prisma.user.upsert({
+    where: { email: 'anaclara@fstailsolutions.com.ar' },
+    update: {},
+    create: {
+      email: 'anaclara@fstailsolutions.com.ar',
+      passwordHash,
+      displayName: 'Ana Clara Ferrando',
+      role: Role.SUPER_ADMIN,
+      workspaceId: workspace.id,
+      emailVerifiedAt: new Date(),
+    },
+  });
+
+  // Actualizar el owner del workspace a Nahuel
   await prisma.workspace.update({
     where: { id: workspace.id },
-    data: { ownerId: admin.id },
+    data: { ownerId: nahuel.id },
   });
 
   // ── Default audit template ────────────────────────────────────────
@@ -74,10 +87,17 @@ async function main() {
   console.log('');
   console.log('✅ Seed complete');
   console.log(`   Workspace: FSTail Solutions (${workspace.id})`);
-  console.log(`   Admin: admin@fstailsolutions.com.ar`);
-  console.log(`   Password: ChangeMe123!`);
   console.log('');
-  console.log('⚠️  Change the admin password immediately after first login.');
+  console.log('── Usuarios creados ──────────────────────────────');
+  console.log('1. Nahuel Nicolás Pierini (Owner + SUPER_ADMIN)');
+  console.log('   Email:    nahuel@fstailsolutions.com.ar');
+  console.log('   Password: ChangeMe123!');
+  console.log('');
+  console.log('2. Ana Clara Ferrando (SUPER_ADMIN)');
+  console.log('   Email:    anaclara@fstailsolutions.com.ar');
+  console.log('   Password: ChangeMe123!');
+  console.log('─────────────────────────────────────────────────');
+  console.log('⚠️  Cambiá las contraseñas inmediatamente después del primer login.');
 }
 
 main()
