@@ -3,10 +3,8 @@ services:
     name: fstail-api
     env: node
     plan: free
-    buildCommand: >
-  npm install --legacy-peer-deps --ignore-scripts
-  && ./node_modules/.bin/prisma generate --schema=prisma/schema.prisma
-  && cd apps/api && npm run buildstartCommand: cd apps/api && node dist/main
+    buildCommand: npm install --legacy-peer-deps --include=dev --ignore-scripts && npx prisma@5.22.0 generate --schema=prisma/schema.prisma && cd apps/api && npx nest build
+startCommand: cd apps/api && node dist/main
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV

@@ -2,12 +2,12 @@
 NODE_VERSION = "20"
 
 [phases.install]
-cmds = ["npm install --legacy-peer-deps"]
+cmds = ["npm install --legacy-peer-deps --include=dev --ignore-scripts"]
 
 [phases.build]
 cmds = [
-  "npx prisma generate --schema=prisma/schema.prisma",
-  "cd apps/api && npm run build"
+  "npx prisma@5.22.0 generate --schema=prisma/schema.prisma",
+  "cd apps/api && npx nest build"
 ]
 
 [start]
