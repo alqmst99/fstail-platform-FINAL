@@ -41,19 +41,19 @@ function setCookies(
 ) {
   const common = {
     httpOnly: true,
-    secure: isProd, // true en Render
+    secure: isProd,
     sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
     path: '/',
   };
 
   res.cookie('accessToken', tokens.accessToken, {
     ...common,
-    maxAge: 15 * 60 * 1000,
+    maxAge: 15 * 60 * 1000, // 15 min
   });
 
   res.cookie('refreshToken', tokens.refreshToken, {
     ...common,
-    maxAge: 30 * 24 * 60 * 60 * 1000,
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
   });
 }
 

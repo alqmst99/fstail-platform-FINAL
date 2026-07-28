@@ -2,7 +2,6 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "jsx": "react",
-    "jsx": "react",
     "module": "commonjs",
     "moduleResolution": "node10",
     "target": "ES2022",
