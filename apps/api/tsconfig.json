@@ -23,6 +23,6 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src/**/*", "test/**/*", "src/prisma/seed.ts", "../web/components/auth/platform-auth-gate.tsx"],
+  "include": ["src/**/*", "test/**/*", "src/prisma/seed.ts"],
   "exclude": ["node_modules", "dist"]
 }
