@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { authApi } from '../../lib/api.ts';
+import { authApi } from '../../lib/api';
 
 export function PlatformAuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
