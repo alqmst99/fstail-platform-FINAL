@@ -10,18 +10,16 @@
   },
   "main": "src/main.js",
   "scripts": {
-    "dev": "electron .",
-    "dev:web": "next dev --port 3000",
-    "build:web": "next build",
-    "build:electron": "electron-builder",
-    "build:win": "electron-builder --win",
-    "build:mac": "electron-builder --mac",
-    "build:linux": "electron-builder --linux",
-    "build:all": "electron-builder --win --mac --linux",
-    "release": "node scripts/release.js",
-    "clean": "rm -rf dist build .next out",
-    "postinstall": "electron-builder install-app-deps"
-  },
+  "dev": "electron .",
+  "build:electron": "electron-builder",
+  "build:win": "electron-builder --win",
+  "build:mac": "electron-builder --mac",
+  "build:linux": "electron-builder --linux",
+  "build:all": "electron-builder --win --mac --linux",
+  "release": "node scripts/release.js",
+  "clean": "rm -rf dist build .next out",
+  "postinstall": "node -e \"try{require('child_process').execSync('electron-builder install-app-deps',{stdio:'inherit'})}catch(e){console.log('skip electron-builder (not installed)')}\""
+},
   "dependencies": {
     "electron-store": "^8.2.0",
     "electron-updater": "^6.3.9"
