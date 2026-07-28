@@ -5,6 +5,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { UpdateBanner } from '../../components/update-banner';
+import { PlatformAuthGate } from '../../components/auth/platform-auth-gate';
 
 async function getServerUser() {
   const cookieStore = cookies();
@@ -35,6 +36,17 @@ export default async function PlatformLayout({
   if (!user) redirect('/login');
 
   return (
+
+  );
+}
+
+const NAV_ITEMS = [
+  { href: '/radar',    icon: '📡', label: 'Radar'    },
+  { href: '/audit',    icon: '🔍', label: 'Audit'    },
+  { href: '/crm',      icon: '👥', label: 'CRM'      },
+  { href: '/reports',  icon: '📊', label: 'Reports'  },
+  { href: '/settings', icon: '⚙️', label: 'Settings' },
+];
     <div className="flex h-screen flex-col bg-surface-900 overflow-hidden">
 
       {/* Update banner — only visible in Electron when update is ready */}
@@ -79,13 +91,3 @@ export default async function PlatformLayout({
         <main className="flex-1 overflow-auto">{children}</main>
       </div>
     </div>
-  );
-}
-
-const NAV_ITEMS = [
-  { href: '/radar',    icon: '📡', label: 'Radar'    },
-  { href: '/audit',    icon: '🔍', label: 'Audit'    },
-  { href: '/crm',      icon: '👥', label: 'CRM'      },
-  { href: '/reports',  icon: '📊', label: 'Reports'  },
-  { href: '/settings', icon: '⚙️', label: 'Settings' },
-];

@@ -38,25 +38,34 @@ function setCookies(
   res: Response,
   tokens: { accessToken: string; refreshToken: string },
   isProd: boolean,
-) 
-{
-  res.cookie('accessToken', tokens.accessToken, {
+) {
+  const common = {
     httpOnly: true,
-    secure: isProd,
-    sameSite: 'strict',
-    maxAge: 15 * 60 * 60 * 1000, // 15 min
+    secure: isProd, // true en Render
+    sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
+    path: '/',
+  };
+
+  res.cookie('accessToken', tokens.accessToken, {
+    ...common,
+    maxAge: 15 * 60 * 1000,
   });
 
-res.cookie('accessToken', tokens.accessToken, {
-  httpOnly: true,
-  secure: isProd,
-  sameSite: 'strict',
-  maxAge: 15 * 60 * 1000, // 15 min ✅
-});}
+  res.cookie('refreshToken', tokens.refreshToken, {
+    ...common,
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+  });
+}
 
-function clearCookies(res: Response) {
-  res.clearCookie('accessToken');
-  res.clearCookie('refreshToken', { path: '/api/auth/refresh' });
+function clearCookies(res: Response, isProd: boolean) {
+  const common = {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
+    path: '/',
+  };
+  res.clearCookie('accessToken', common);
+  res.clearCookie('refreshToken', common);
 }
 
 @ApiTags('auth')

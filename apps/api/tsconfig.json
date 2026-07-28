@@ -1,6 +1,8 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "jsx": "react",
+    "jsx": "react",
     "module": "commonjs",
     "moduleResolution": "node10",
     "target": "ES2022",
@@ -21,6 +23,6 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src/**/*", "test/**/*", "src/prisma/seed.ts"],
+  "include": ["src/**/*", "test/**/*", "src/prisma/seed.ts", "../web/components/auth/platform-auth-gate.tsx"],
   "exclude": ["node_modules", "dist"]
 }
