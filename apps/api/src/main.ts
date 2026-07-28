@@ -12,17 +12,52 @@ async function bootstrap() {
   const config = app.get(ConfigService);
   const port = Number(process.env.PORT) || config.get<number>('API_PORT', 3001);
   const nodeEnv = config.get<string>('NODE_ENV', 'development');
-  const appUrl = config.get<string>('APP_URL', 'http://localhost:3000');
 
-  // ── Security ────────────────────────────────────────────────────────
-  app.use(helmet());
+  // Orígenes permitidos (separados por coma en env, o defaults)
+  const corsOrigins = (
+    config.get<string>('CORS_ORIGINS') ||
+    config.get<string>('APP_URL') ||
+    'http://localhost:3000'
+  )
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+
+  // En desarrollo, permitir también localhost y 127.0.0.1
+  if (nodeEnv !== 'production') {
+    const devOrigins = [
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'http://localhost:3001',
+    ];
+    for (const o of devOrigins) {
+      if (!corsOrigins.includes(o)) corsOrigins.push(o);
+    }
+  }
+
+  app.use(helmet({
+    // Opcional: no bloquear cross-origin resource sharing a nivel CSP
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  }));
+
   app.enableCors({
-    origin: [appUrl],
-    credentials: true, // Required for HttpOnly cookie auth
+    origin: (origin, callback) => {
+      // Requests sin Origin (curl, server-to-server, health checks)
+      if (!origin) {
+        return callback(null, true);
+      }
+      if (corsOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      // Log útil para debug
+      console.warn(`[CORS] Blocked origin: ${origin}. Allowed: ${corsOrigins.join(', ')}`);
+      return callback(new Error(`Origin ${origin} not allowed by CORS`), false);
+    },
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+    exposedHeaders: ['Set-Cookie'],
   });
-
   // ── Cookies ─────────────────────────────────────────────────────────
   app.use(cookieParser());
 
