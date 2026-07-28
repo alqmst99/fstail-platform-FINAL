@@ -150,7 +150,7 @@ export class AuthController {
   ) {
     const refreshToken = req.cookies?.['refreshToken'];
     await this.authService.logout(userId, refreshToken);
-    clearCookies(res);
+    clearCookies(res, this.isProd);
     return { message: 'Logged out' };
   }
 
@@ -166,7 +166,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     await this.authService.logoutAllDevices(userId);
-    clearCookies(res);
+    clearCookies(res, this.isProd);
     return { message: 'Logged out from all devices' };
   }
 
