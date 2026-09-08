@@ -126,15 +126,20 @@ export default function DashboardPage() {
       setTasks(byDay[selectedDay] || []);
       setApps(a.data || []);
 
-      const withEnergy = (byDay[selectedDay] || []).filter((x) => x.energyLevel != null);
-      if (withEnergy.length) setEnergy(withEnergy[withEnergy.length - 1].energyLevel!);
+      const withEnergy = (byDay[selectedDay] || []).filter(
+        (x): x is Task & { energyLevel: number } => typeof x.energyLevel === 'number',
+      );
+      const lastEnergy = withEnergy.at(-1);
+      if (lastEnergy) setEnergy(lastEnergy.energyLevel);
 
       // Mapa mensual simple a partir de la semana actual + mock de densidad
       const month: Record<string, { done: number; total: number; energy: number }> = {};
       for (const [date, list] of Object.entries(byDay)) {
         const total = list.length;
         const done = list.filter((t) => t.completed).length;
-        const energies = list.filter((t) => t.energyLevel != null).map((t) => t.energyLevel!);
+        const energies = list
+          .map((t) => t.energyLevel)
+          .filter((n): n is number => typeof n === 'number');
         const avgE = energies.length ? energies.reduce((s, n) => s + n, 0) / energies.length : 0;
         month[date] = { done, total, energy: avgE };
       }
