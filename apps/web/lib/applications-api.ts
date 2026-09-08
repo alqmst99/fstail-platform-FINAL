@@ -1,12 +1,17 @@
-async function request<T>(path: string, options: RequestInit & { body?: unknown } = {}): Promise<T> {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
-  const { body, ...rest } = options;
-  const res = await fetch(`${API_URL}${path.startsWith('/api') ? path : `/api${path}`}`, {
-    ...rest,
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+
+type RequestOptions = Omit<RequestInit, 'body'> & {
+  body?: unknown;
+};
+
+async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const { body, ...fetchOptions } = options;
+  const res = await fetch(`${API_URL}/api${path}`, {
+    ...fetchOptions,
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...(rest.headers || {}),
+      ...(fetchOptions.headers || {}),
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
@@ -16,7 +21,7 @@ async function request<T>(path: string, options: RequestInit & { body?: unknown 
     throw new Error(msg);
   }
   if (res.status === 204) return undefined as T;
-  return res.json();
+  return res.json() as Promise<T>;
 }
 
 export const applicationsApi = {
@@ -24,7 +29,6 @@ export const applicationsApi = {
     const qs = assignedTo ? `?assignedTo=${encodeURIComponent(assignedTo)}` : '';
     return request<any>(`/applications/stats${qs}`);
   },
-  /** Histórico de bids desde la API de Freelancer (OAuth) */
   freelancerHistory: (refresh = true) =>
     request<any>(`/applications/freelancer-history?refresh=${refresh ? 'true' : 'false'}`),
   list: (q?: { status?: string; assignedTo?: string }) => {
@@ -47,7 +51,6 @@ export const applicationsApi = {
       method: 'PATCH',
       body: { status, ...extra },
     }),
-  /** Pull bids from Freelancer API → Prisma Application (max 120) */
   syncFreelancer: () =>
     request<{ imported: number; won: number; lost: number; pending: number; totalRaw: number }>(
       '/applications/sync-freelancer',
@@ -61,13 +64,19 @@ export const dailyTasksApi = {
     if (date) params.set('date', date);
     return request<any[]>(`/daily-tasks?${params}`);
   },
+  listRange: (userTag: string, from: string, to: string) =>
+    request<any[]>(
+      `/daily-tasks/range?userTag=${encodeURIComponent(userTag)}&from=${from}&to=${to}`,
+    ),
   create: (body: Record<string, unknown>) =>
     request<any>('/daily-tasks', { method: 'POST', body }),
   update: (id: string, body: Record<string, unknown>) =>
     request<any>(`/daily-tasks/${id}`, { method: 'PATCH', body }),
   remove: (id: string) => request<void>(`/daily-tasks/${id}`, { method: 'DELETE' }),
   routineContext: (userTag: string) =>
-    request<Record<string, unknown>>(`/daily-tasks/routine-context?userTag=${encodeURIComponent(userTag)}`),
+    request<Record<string, unknown>>(
+      `/daily-tasks/routine-context?userTag=${encodeURIComponent(userTag)}`,
+    ),
   importRoutine: (body: {
     userTag: string;
     tasks: Array<{ title: string; category?: string; timeSpentMin?: number }>;
@@ -75,13 +84,6 @@ export const dailyTasksApi = {
     replaceToday?: boolean;
     date?: string;
   }) => request<{ imported: number }>('/daily-tasks/import-routine', { method: 'POST', body }),
-
-  /** Una sola request para toda la semana */
-  listRange: (userTag: string, from: string, to: string) =>
-    request<any[]>(
-      `/daily-tasks/range?userTag=${encodeURIComponent(userTag)}&from=${from}&to=${to}`,
-    ),
-
   importRoutineWeek: (body: {
     userTag: string;
     tasks?: Array<{ title: string; category?: string; timeSpentMin?: number; date?: string }>;
