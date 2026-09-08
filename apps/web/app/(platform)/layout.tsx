@@ -77,10 +77,12 @@ export default function PlatformLayout({
 }
 
 const NAV_ITEMS = [
-  { href: '/radar',    icon: '📡', label: 'Radar'    },
-  { href: '/audit',    icon: '🔍', label: 'Audit'    },
-  { href: '/crm',      icon: '👥', label: 'CRM'      },
-  { href: '/reports',  icon: '📊', label: 'Reports'  },
-  { href: '/settings', icon: '⚙️', label: 'Settings' },
+  { href: '/dashboard',     icon: '🏠', label: 'Home'           },
+  { href: '/radar',         icon: '📡', label: 'Radar'          },
+  { href: '/applications',  icon: '📨', label: 'Postulaciones'  },
+  { href: '/crm',           icon: '👥', label: 'CRM'            },
+  { href: '/audit',         icon: '🔍', label: 'Audit'          },
+  { href: '/reports',       icon: '📊', label: 'Reports'        },
+  { href: '/settings',      icon: '⚙️', label: 'Settings'       },
 ];
     

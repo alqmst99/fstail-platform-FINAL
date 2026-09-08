@@ -65,7 +65,44 @@ export class ScanDto {
   @IsArray()
   @IsString({ each: true })
   requiredSkills?: string[];
+
+  // Quality filters — all optional, default false (no filter)
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  requirePaymentVerified?: boolean = false;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  requireHireRate60?: boolean = false;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  requireMinDescription?: boolean = false;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  requireMaxBids?: boolean = false;
+
+  @ApiPropertyOptional({ default: 120 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  minDescriptionLength?: number = 120;
+
+  @ApiPropertyOptional({ default: 15 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  maxBidCount?: number = 15;
+
 }
+
 
 export class GenerateProposalDto {
   @ApiProperty({

@@ -3,12 +3,13 @@
 // Security fixes from Phase 1 applied:
 //   R-02: URL allowlist validation before every request
 //   All API responses validated before use
+// Enhanced with strict quality filter (payment_verified, hire_rate, desc len, bid_count)
 
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import type { ScanDto } from './dto/radar.dto';
-import type { FreelancerProject } from '@fstail/types';
+import type { FreelancerProject, FreelancerProjectExtended } from '@fstail/types';
+import { evaluateProject } from './radarFilter';
 
-// R-02 Fix — allowlist of permitted base URLs for outbound requests
 const ALLOWED_FREELANCER_DOMAINS = [
   'https://www.freelancer.com',
   'https://freelancer.com',
@@ -21,17 +22,13 @@ const FREELANCER_SEARCH_BASE =
 export class FreelancerClient {
   private readonly logger = new Logger(FreelancerClient.name);
 
-  /**
-   * Fetch active projects from Freelancer.com search API.
-   * Applies budget, escrow, and skill filters server-side before returning.
-   */
   async fetchProjects(dto: ScanDto): Promise<{
-    projects: FreelancerProject[];
+    projects: FreelancerProjectExtended[];
     rawCount: number;
     validCount: number;
   }> {
     const url = this.buildUrl(dto);
-    this.validateUrl(url); // R-02
+    this.validateUrl(url);
 
     this.logger.log(`Radar scan: ${url}`);
 
@@ -40,7 +37,7 @@ export class FreelancerClient {
         'User-Agent': 'FSTailPlatform/1.0',
         Accept: 'application/json',
       },
-      signal: AbortSignal.timeout(15_000), // 15s timeout
+      signal: AbortSignal.timeout(15_000),
     });
 
     if (!response.ok) {
@@ -49,24 +46,18 @@ export class FreelancerClient {
       );
     }
 
-    const body = await response.json() as Record<string, any>;
+    const body = (await response.json()) as Record<string, any>;
     const raw: unknown[] = body?.['result']?.['projects'] ?? [];
     const rawCount = raw.length;
 
     const projects = raw
       .map((p) => this.normalise(p))
-      .filter((p): p is FreelancerProject => p !== null)
+      .filter((p): p is FreelancerProjectExtended => p !== null)
       .filter((p) => this.passesFilters(p, dto));
 
     return { projects, rawCount, validCount: projects.length };
   }
 
-  // ── Private ───────────────────────────────────────────────────────
-
-  /**
-   * R-02: Reject any URL that doesn't point to freelancer.com.
-   * Prevents SSRF — a crafted URL could reach internal services.
-   */
   private validateUrl(url: string): void {
     const allowed = ALLOWED_FREELANCER_DOMAINS.some((domain) =>
       url.startsWith(domain),
@@ -80,11 +71,9 @@ export class FreelancerClient {
 
   private buildUrl(dto: ScanDto): string {
     if (dto.sourceUrl) {
-      // User provided a full URL — validate it, then use directly
       return dto.sourceUrl;
     }
 
-    // Build from keyword
     const params = new URLSearchParams({
       limit: String(dto.limit ?? 80),
       job_details: 'true',
@@ -92,10 +81,10 @@ export class FreelancerClient {
       ...(dto.keyword && { query: dto.keyword }),
     });
 
-    return `${FREELANCER_SEARCH_BASE}?${params.toString()}&types=hourly,fixed&projectLanguages=es,en&projectSort=fewestBids&projectSkills=9,17,33,38,69,77,120,219,305,323,335,481,500,598,758,759,788,997,999,1031,1042,1254,1365,1623,1832,2037,2164,2376,2839,3005`
+    return `${FREELANCER_SEARCH_BASE}?${params.toString()}&types=hourly,fixed&projectLanguages=es,en&projectSort=fewestBids&projectSkills=9,17,33,38,69,77,120,219,305,323,335,481,500,598,758,759,788,997,999,1031,1042,1254,1365,1623,1832,2037,2164,2376,2839,3005`;
   }
 
-  private normalise(raw: unknown): FreelancerProject | null {
+  private normalise(raw: unknown): FreelancerProjectExtended | null {
     try {
       const p = raw as Record<string, any>;
 
@@ -104,12 +93,52 @@ export class FreelancerClient {
       const owner = p['owner_details'] ?? p['owner'] ?? {};
       const budget = p['budget'] ?? {};
       const currency = p['currency'] ?? {};
+      const bidStats = p['bid_stats'] ?? {};
+      const reputation = owner['employer_reputation']?.['entire'] ?? owner['reputation'] ?? {};
+      const status = owner['status'] ?? {};
+
+      const paymentVerified =
+        Boolean(status['payment_verified']) ||
+        Boolean(owner['payment_verified']) ||
+        Boolean(owner['escrowcom_interaction_status'] === 'verified');
+
+      const hireRate = Number(reputation['hire_rate'] ?? reputation['hireRate'] ?? 0);
+      const reviewsCount = Number(reputation['reviews'] ?? reputation['review_count'] ?? 0);
+      const avgBid = Number(bidStats['avg_bid'] ?? bidStats['bid_avg'] ?? 0);
+      const bidCount = Number(bidStats['bid_count'] ?? 0);
+
+      const location = owner['location'] ?? {};
+      const country =
+        location['country']?.['name'] ??
+        location['country_name'] ??
+        owner['country'] ??
+        undefined;
+
+      const attachments = Array.isArray(p['attachments'])
+        ? p['attachments'].map((a: any) => ({
+            id: Number(a['id'] ?? 0),
+            filename: String(a['filename'] ?? a['name'] ?? 'file'),
+            url: a['url'] ? String(a['url']) : undefined,
+          }))
+        : [];
+
+      const submittedRaw =
+        p['time_submitted'] ?? p['submitdate'] ?? p['time_updated'] ?? null;
+      let timeSubmitted: string | undefined;
+      if (typeof submittedRaw === 'number') {
+        // Freelancer often returns unix seconds
+        timeSubmitted = new Date(
+          submittedRaw > 1e12 ? submittedRaw : submittedRaw * 1000,
+        ).toISOString();
+      } else if (typeof submittedRaw === 'string' && submittedRaw) {
+        timeSubmitted = new Date(submittedRaw).toISOString();
+      }
 
       return {
         id: Number(p['id']),
         title: String(p['title'] ?? '').trim(),
         seoUrl: String(p['seo_url'] ?? ''),
-        description: String(p['description'] ?? '').slice(0, 1000),
+        description: String(p['description'] ?? ''),
         budget: {
           minimum: Number(budget['minimum'] ?? 0),
           maximum: Number(budget['maximum'] ?? 0),
@@ -119,7 +148,7 @@ export class FreelancerClient {
           sign: String(currency['sign'] ?? '$'),
           code: String(currency['code'] ?? 'USD'),
         },
-        bidCount: Number(p['bid_stats']?.['bid_count'] ?? 0),
+        bidCount,
         skills: Array.isArray(p['jobs'])
           ? p['jobs'].map((j: any) => String(j['name'] ?? '')).filter(Boolean)
           : [],
@@ -128,8 +157,18 @@ export class FreelancerClient {
           username: String(owner['username'] ?? ''),
           escrowComSupported: Boolean(owner['escrowcom_interaction_status'] === 'verified'),
           hasLinkedEscrowAccount: Boolean(owner['has_linked_escrow_account']),
+          //paymentVerified,
         },
         scannedAt: new Date().toISOString(),
+       // timeSubmitted: timeSubmitted ?? new Date().toISOString(),
+        // Extended fields for strict filter + UI tiers
+       // paymentVerified,
+        hireRate,
+        reviewsCount,
+        avgBid,
+        clientCountry: country,
+        clientSpent: Number(owner['total_amount_spent'] ?? owner['spent'] ?? 0) || undefined,
+        attachments,
       };
     } catch (err) {
       this.logger.warn(`Failed to normalise project: ${err}`);
@@ -137,10 +176,12 @@ export class FreelancerClient {
     }
   }
 
-  private passesFilters(project: FreelancerProject, dto: ScanDto): boolean {
-    // R-06 fix: "escrow supported" is a specific technical flag, not "verified client"
+  /**
+   * Filtros legacy (budget, skills, escrow) + filtro estricto de calidad del prompt.
+   */
+  private passesFilters(project: FreelancerProjectExtended, dto: ScanDto): boolean {
+    // Legacy filters
     if (dto.escrowOnly && !project.owner.escrowComSupported) return false;
-
     if (dto.minBudget && project.budget.maximum < dto.minBudget) return false;
     if (dto.maxBudget && project.budget.minimum > dto.maxBudget) return false;
 
@@ -152,6 +193,29 @@ export class FreelancerClient {
       if (!hasAll) return false;
     }
 
+    // Quality filters only if user enabled them in the scan form
+    const evaluation = evaluateProject(project, {
+      requirePaymentVerified: dto.requirePaymentVerified,
+      requireHireRate60: dto.requireHireRate60,
+      requireMinDescription: dto.requireMinDescription,
+      requireMaxBids: dto.requireMaxBids,
+      minDescriptionLength: dto.minDescriptionLength,
+      maxBidCount: dto.maxBidCount,
+    });
+    if (!evaluation.qualified) {
+      this.logger.debug(
+        `Project ${project.id} rejected: ${evaluation.reasons.join('; ')}`,
+      );
+      return false;
+    }
+
     return true;
+  }
+
+  /**
+   * Evaluar un proyecto individual (útil para el frontend Quick Bid).
+   */
+  evaluate(project: FreelancerProjectExtended) {
+    return evaluateProject(project);
   }
 }

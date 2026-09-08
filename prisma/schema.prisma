@@ -79,6 +79,9 @@ model Workspace {
   radarScans RadarScan[]
   proposals  Proposal[]
   reports    Report[]
+  applications Application[]
+  dailyTasks DailyTask[]
+  freelancerBids FreelancerBidSnapshot[]
 
   @@map("workspaces")
 }
@@ -308,4 +311,138 @@ model Report {
   createdBy User      @relation(fields: [createdById], references: [id])
 
   @@map("reports")
+}
+
+// ─── Freelancer CRM / Applications / Operativa ───────────────────────────────
+
+enum BidStatus {
+  POSTULADO
+  EN_CONVERSACION
+  ADJUDICADO_A_MIME
+  ADJUDICADO_A_OTRO
+  CANCELADO
+  NO_ADJUDICADO
+}
+
+model Application {
+  id                 String    @id @default(uuid())
+  workspaceId        String    @map("workspace_id")
+  freelancerProjId   String    @unique @map("freelancer_proj_id")
+  title              String
+  rawDescription     String    @map("raw_description")
+  translatedDesc     String?   @map("translated_desc")
+  clientCountry      String?   @map("client_country")
+  clientHireRate     Float?    @map("client_hire_rate")
+  clientSpent        Float?    @map("client_spent")
+
+  // Análisis de Mercado
+  avgBidPrice        Float     @map("avg_bid_price")
+  recommendedPrice   Float     @map("recommended_price")
+  submittedPrice     Float     @map("submitted_price")
+  submittedDays      Int       @map("submitted_days")
+
+  status             BidStatus @default(POSTULADO)
+
+  // Tracking de Competencia
+  winnerBidPrice     Float?    @map("winner_bid_price")
+  winnerRating       Float?    @map("winner_rating")
+  winnerReviewsCount Int?      @map("winner_reviews_count")
+
+  // Datos de la propuesta
+  proposalText       String    @map("proposal_text")
+  attachmentsText    String?   @map("attachments_text")
+  assignedToUserTag  String?   @map("assigned_to_user_tag")
+  /// RADAR = postulado desde la app | FREELANCER = importado desde API de FL
+  source             String    @default("RADAR") // RADAR | FREELANCER
+  externalBidId      String?   @map("external_bid_id")
+
+  messages           Message[]
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  workspace          Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@index([workspaceId, status])
+  @@index([assignedToUserTag])
+  @@index([workspaceId, source])
+  @@index([externalBidId])
+  @@map("applications")
+}
+
+model Message {
+  id            String      @id @default(uuid())
+  applicationId String      @map("application_id")
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  sender        String      // 'me' | 'client'
+  text          String
+  timestamp     DateTime    @default(now())
+  externalId    String?     @map("external_id") // ID del mensaje en Freelancer
+
+  @@index([applicationId, timestamp])
+  @@map("messages")
+}
+
+model DailyTask {
+  id           String   @id @default(uuid())
+  workspaceId  String   @map("workspace_id")
+  userTag      String   @map("user_tag") // "Dev1" | "Dev2"
+  title        String
+  category     String   // 'POSTULACION' | 'ESTUDIO' | 'DESARROLLO' | 'SALUD_MENTAL'
+  completed    Boolean  @default(false)
+  timeSpentMin Int      @default(0) @map("time_spent_min")
+  date         DateTime @default(now()) @db.Date
+  energyLevel  Int?     @map("energy_level") // 1-5
+  notes        String?
+
+  workspace    Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@index([workspaceId, userTag, date])
+  @@map("daily_tasks")
+}
+
+
+// Cache / memoria local del histórico de bids traído de Freelancer Developer API
+enum FlBidOutcome {
+  WON
+  LOST
+  PENDING
+  RETRACTED
+  UNKNOWN
+}
+
+model FreelancerBidSnapshot {
+  id              String       @id @default(uuid())
+  workspaceId     String       @map("workspace_id")
+  /// ID del bid en Freelancer
+  externalBidId   String       @map("external_bid_id")
+  projectId       String       @map("project_id")
+  projectTitle    String       @map("project_title")
+  seoUrl          String?      @map("seo_url")
+  amount          Float
+  period          Int          @default(0)
+  currency        String       @default("USD")
+  description     String?      @db.Text
+  awardStatus     String?      @map("award_status")
+  outcome         FlBidOutcome @default(UNKNOWN)
+  clientViewed    Boolean      @default(false) @map("client_viewed")
+  profileViewed   Boolean      @default(false) @map("profile_viewed")
+  winnerAmount    Float?       @map("winner_amount")
+  bidCount        Int?         @map("bid_count")
+  avgBid          Float?       @map("avg_bid")
+  projectStatus   String?      @map("project_status")
+  submittedAt     DateTime?    @map("submitted_at")
+  awardedAt       DateTime?    @map("awarded_at")
+  /// Payload parcial normalizado / debug
+  meta            Json         @default("{}")
+  lastSyncedAt    DateTime     @default(now()) @map("last_synced_at")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  workspace       Workspace    @relation(fields: [workspaceId], references: [id])
+
+  @@unique([workspaceId, externalBidId])
+  @@index([workspaceId, outcome])
+  @@index([workspaceId, submittedAt])
+  @@index([projectId])
+  @@map("freelancer_bid_snapshots")
 }

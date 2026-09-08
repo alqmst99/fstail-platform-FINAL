@@ -18,8 +18,16 @@ export interface FreelancerProject {
     username: string;
     escrowComSupported: boolean;
     hasLinkedEscrowAccount: boolean;
+    paymentVerified?: boolean;
   };
   scannedAt: string;
+  /** ISO date when the project was submitted on Freelancer */
+  timeSubmitted?: string;
+  paymentVerified?: boolean;
+  hireRate?: number;
+  reviewsCount?: number;
+  avgBid?: number;
+  clientCountry?: string;
 }
 
 export interface ScanResult {
@@ -138,3 +146,19 @@ export function formatBudget(project: FreelancerProject): string {
   if (minimum === maximum) return `${sign}${minimum}`;
   return `${sign}${minimum}–${sign}${maximum}`;
 }
+
+
+/** Extended scan options — quality filters selectable from UI */
+export type ScanParamsExtended = {
+  keyword?: string;
+  escrowOnly?: boolean;
+  minBudget?: number;
+  maxBudget?: number;
+  limit?: number;
+  requirePaymentVerified?: boolean;
+  requireHireRate60?: boolean;
+  requireMinDescription?: boolean;
+  requireMaxBids?: boolean;
+  minDescriptionLength?: number;
+  maxBidCount?: number;
+};
