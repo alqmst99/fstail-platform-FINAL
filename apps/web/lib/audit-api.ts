@@ -8,6 +8,7 @@ export interface AuditSection {
   key: string;
   label: string;
   weight: number;
+  enabled: boolean;
   score: number | null;
   observations: string;
   evidenceUrls: string[];
@@ -24,8 +25,11 @@ export interface ScoreResult {
 
 export type AuditSectionUpdate = {
   key: string;
+  label?: string;
+  enabled: boolean;
   score: number | null;
   observations: string;
+  evidenceUrls: string[];
 };
 
 export interface AuditSummary {

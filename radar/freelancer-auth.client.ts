@@ -47,7 +47,7 @@ export class FreelancerAuthClient {
   private ensureConfigured() {
     if (!this.isConfigured()) {
       throw new BadRequestException(
-        'Freelancer Developer API no configurada. Ver docs/FREELANCER_DEVELOPER_API.md',
+        'Freelancer Developer API no configurada. Ver docs/DEVELOPERS.md',
       );
     }
   }

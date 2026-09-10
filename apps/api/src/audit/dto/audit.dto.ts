@@ -5,6 +5,7 @@ import {
   IsIn,
   IsUUID,
   IsInt,
+  IsBoolean,
   IsArray,
   ValidateNested,
   Min,
@@ -26,6 +27,17 @@ export class AuditSectionDto {
   @IsString()
   key!: string;
 
+  @ApiPropertyOptional({ example: 'Header & Hero' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  label?: string;
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  enabled?: boolean;
+
   @ApiProperty({ example: 7, minimum: 0, maximum: 10 })
   @IsOptional()
   @IsInt()
@@ -43,6 +55,7 @@ export class AuditSectionDto {
   @IsOptional()
   @IsArray()
   @IsUrl({}, { each: true })
+  @MaxLength(500, { each: true })
   evidenceUrls?: string[];
 }
 

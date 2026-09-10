@@ -37,6 +37,8 @@ function BlockItem({ block, isPortal }: { block: ReportBlock; isPortal: boolean 
       return <AuditSummaryBlock data={block.data} isPortal={isPortal} />;
     case 'audit_comparison':
       return <AuditComparisonBlock data={block.data} />;
+    case 'application_summary':
+      return <ApplicationSummaryBlock data={block.data} />;
     case 'recommendations':
       return <RecommendationsBlock data={block.data} />;
     case 'divider':
@@ -208,6 +210,40 @@ function RecommendationsBlock({ data }: { data: Record<string, unknown> }) {
             </li>
           ))}
         </ul>
+      )}
+    </div>
+  );
+}
+
+function ApplicationSummaryBlock({ data }: { data: Record<string, unknown> }) {
+  const rows = (data['applications'] as any[]) ?? [];
+  const metrics: Array<[string, unknown]> = [
+    ['Total', data['total']],
+    ['Ganadas', data['won']],
+    ['Perdidas', data['lost']],
+    ['Abiertas', data['open']],
+    ['Conversión', `${data['conversionRate'] ?? 0}%`],
+    ['Oferta media', `$${data['averageSubmitted'] ?? 0}`],
+  ];
+
+  return (
+    <div className="rounded-lg border border-surface-700 bg-surface-800 p-5 space-y-4">
+      <h3 className="text-sm font-semibold uppercase tracking-wider text-surface-300">Informe de postulaciones</h3>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        {metrics.map(([label, value]) => (
+          <div key={label} className="rounded-md bg-surface-900 p-3">
+            <div className="text-xs text-surface-500">{label}</div>
+            <div className="mt-1 text-lg font-semibold text-surface-100">{String(value ?? '—')}</div>
+          </div>
+        ))}
+      </div>
+      {rows.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="text-left text-surface-500"><tr><th className="py-2">Proyecto</th><th>Estado</th><th>Oferta</th><th>Ganador</th></tr></thead>
+            <tbody>{rows.map((row) => <tr key={row.id} className="border-t border-surface-700"><td className="py-2 text-surface-200">{row.title}</td><td>{row.status}</td><td>${row.submittedPrice}</td><td>{row.winnerBidPrice == null ? '—' : `$${row.winnerBidPrice}`}</td></tr>)}</tbody>
+          </table>
+        </div>
       )}
     </div>
   );

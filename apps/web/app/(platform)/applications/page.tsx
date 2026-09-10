@@ -178,7 +178,9 @@ export default function ApplicationsPage() {
                     </div>
                     <h3 className="font-medium text-surface-100">{app.title}</h3>
                     <p className="text-xs text-surface-500 mt-1">
-                      {app.clientCountry || '—'} · ${app.submittedPrice} · {app.submittedDays}d
+                      {app.clientCountry || '—'} · Oferta ${app.submittedPrice} · {app.submittedDays}d
+                      {app.avgBidPrice ? ` · Promedio $${app.avgBidPrice}` : ''}
+                      {app.recommendedPrice ? ` · Sugerido $${app.recommendedPrice}` : ''}
                       {app.assignedToUserTag ? ` · ${app.assignedToUserTag}` : ''}
                     </p>
                   </div>

@@ -71,11 +71,13 @@ export interface FreelancerProject {
   };
   bidCount: number;
   skills: string[];
+  timeSubmitted?: string;
   owner: {
     id: number;
     username: string;
     escrowComSupported: boolean;
     hasLinkedEscrowAccount: boolean;
+    paymentVerified?: boolean;
   };
   scannedAt: string; // ISO date
 }

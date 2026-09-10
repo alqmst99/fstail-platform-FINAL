@@ -6,6 +6,7 @@ import {
   IsUUID,
   IsObject,
   IsInt,
+  IsBoolean,
   Min,
   MinLength,
   MaxLength,
@@ -21,6 +22,7 @@ export type ReportBlockType =
   | 'text'
   | 'audit_summary'    // embeds a single audit's score and sections
   | 'audit_comparison' // side-by-side comparison of multiple audits
+  | 'application_summary'
   | 'score_chart'      // score visualisation
   | 'recommendations'  // list of recommendations
   | 'divider';
@@ -50,6 +52,11 @@ export class CreateReportDto {
   @IsArray()
   @IsUUID(undefined, { each: true })
   auditIds?: string[];
+
+  @ApiPropertyOptional({ description: 'Incluye métricas y detalle de postulaciones' })
+  @IsOptional()
+  @IsBoolean()
+  applicationReport?: boolean;
 }
 
 // ── Update content ────────────────────────────────────────────────────

@@ -20,12 +20,25 @@ import type {
 
 // Default section template used when no templateId is specified
 const DEFAULT_SECTIONS = [
-  { key: 'performance',    label: 'Performance',      weight: 20 },
-  { key: 'seo',            label: 'SEO & Visibility',  weight: 20 },
-  { key: 'ux',             label: 'UX & Design',       weight: 20 },
-  { key: 'security',       label: 'Security',          weight: 20 },
-  { key: 'accessibility',  label: 'Accessibility',     weight: 10 },
-  { key: 'content',        label: 'Content & Copy',    weight: 10 },
+  { key: 'firstImpression', label: 'Primera impresión', weight: 5 },
+  { key: 'header',          label: 'Header & Hero', weight: 5 },
+  { key: 'home',            label: 'Home', weight: 5 },
+  { key: 'about',           label: 'About', weight: 4 },
+  { key: 'services',        label: 'Servicios', weight: 6 },
+  { key: 'portfolio',       label: 'Portfolio', weight: 5 },
+  { key: 'testimonials',    label: 'Testimonios', weight: 4 },
+  { key: 'faq',             label: 'FAQ', weight: 3 },
+  { key: 'blog',            label: 'Blog', weight: 3 },
+  { key: 'contact',         label: 'Contacto', weight: 6 },
+  { key: 'footer',          label: 'Footer', weight: 3 },
+  { key: 'responsive',      label: 'Responsive', weight: 6 },
+  { key: 'performance',     label: 'Performance', weight: 10 },
+  { key: 'seo',             label: 'SEO & Visibility', weight: 10 },
+  { key: 'accessibility',   label: 'Accesibilidad', weight: 8 },
+  { key: 'security',        label: 'Seguridad', weight: 8 },
+  { key: 'ux',              label: 'UX', weight: 6 },
+  { key: 'conversion',      label: 'Conversión', weight: 8 },
+  { key: 'content',         label: 'Contenido', weight: 8 },
 ];
 
 @Injectable()
@@ -133,6 +146,7 @@ export class AuditService {
       key:          s.key,
       label:        s.label,
       weight:       s.weight,
+      enabled:      true,
       score:        null,
       observations: '',
       evidenceUrls: [],

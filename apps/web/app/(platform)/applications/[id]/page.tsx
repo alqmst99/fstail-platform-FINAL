@@ -50,6 +50,19 @@ export default function ApplicationDetailPage() {
         </p>
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Metric label="Precio medio" value={app.avgBidPrice != null ? `$${app.avgBidPrice}` : '—'} />
+        <Metric label="Precio sugerido" value={app.recommendedPrice != null ? `$${app.recommendedPrice}` : '—'} />
+        <Metric label="Precio enviado" value={`$${app.submittedPrice}`} />
+      </div>
+
+      <div className="rounded-xl border border-surface-700 bg-surface-900 p-4">
+        <h2 className="text-sm font-medium text-surface-300 mb-2">Descripción original del proyecto</h2>
+        <p className="text-sm text-surface-400 whitespace-pre-wrap max-h-80 overflow-y-auto">
+          {app.rawDescription || 'No hay descripción original guardada.'}
+        </p>
+      </div>
+
       <div className="rounded-xl border border-surface-700 bg-surface-900 overflow-hidden">
         <div className="px-4 py-3 border-b border-surface-700 text-sm font-medium text-surface-200">
           Conversación
@@ -98,6 +111,15 @@ export default function ApplicationDetailPage() {
         <h3 className="text-sm font-medium text-surface-300 mb-2">Tu propuesta</h3>
         <pre className="text-xs text-surface-400 whitespace-pre-wrap">{app.proposalText}</pre>
       </div>
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-surface-700 bg-surface-900 p-4">
+      <div className="text-xs text-surface-500">{label}</div>
+      <div className="text-lg font-semibold text-surface-100 mt-1">{value}</div>
     </div>
   );
 }

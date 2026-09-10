@@ -57,17 +57,19 @@ async function main() {
     update: {},
     create: {
       id: defaultTemplateId,
-      name: 'Web Presence Audit',
-      description: 'Standard web audit covering performance, SEO, UX, security, and accessibility',
+      name: 'Professional Web Audit',
+      description: 'Audit completo de presencia web, UX, conversión, SEO, performance, accesibilidad y seguridad',
       isDefault: true,
       sections: [
-        { key: 'performance', label: 'Performance', weight: 20, criteria: [] },
-        { key: 'seo', label: 'SEO & Visibility', weight: 20, criteria: [] },
-        { key: 'ux', label: 'UX & Design', weight: 20, criteria: [] },
-        { key: 'security', label: 'Security', weight: 20, criteria: [] },
-        { key: 'accessibility', label: 'Accessibility', weight: 10, criteria: [] },
-        { key: 'content', label: 'Content & Copy', weight: 10, criteria: [] },
-      ],
+        ['firstImpression', 'Primera impresión', 5], ['header', 'Header & Hero', 5],
+        ['home', 'Home', 5], ['about', 'About', 4], ['services', 'Servicios', 6],
+        ['portfolio', 'Portfolio', 5], ['testimonials', 'Testimonios', 4],
+        ['faq', 'FAQ', 3], ['blog', 'Blog', 3], ['contact', 'Contacto', 6],
+        ['footer', 'Footer', 3], ['responsive', 'Responsive', 6],
+        ['performance', 'Performance', 10], ['seo', 'SEO & Visibility', 10],
+        ['accessibility', 'Accesibilidad', 8], ['security', 'Seguridad', 8],
+        ['ux', 'UX', 6], ['conversion', 'Conversión', 8], ['content', 'Contenido', 8],
+      ].map(([key, label, weight]) => ({ key, label, weight, criteria: [] })),
     },
   });
 

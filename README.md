@@ -1,51 +1,34 @@
-# FSTail Platform — overlay con módulo Radar Freelancer + CRM
+# FSTail Platform
 
-Este ZIP usa **las mismas rutas del monorepo** de `final.zip`.
+Plataforma interna para captar proyectos de desarrollo web en Freelancer, preparar y enviar postulaciones, analizar resultados y documentar auditorías de sitios.
 
-## Estructura (rutas reales)
+## Módulos
 
-```
-apps/api/src/applications/     # CRM + bid real + award monitor
-apps/api/src/daily-tasks/      # tareas + routine-context
-apps/api/src/radar/            # filter estricto + FreelancerAuthClient (OAuth)
-apps/api/src/app.module.ts     # imports nuevos módulos
-apps/desktop/src/main.js       # notificaciones con click
-apps/desktop/src/preload.js    # electronAPI.notify
-apps/web/app/(platform)/dashboard/
-apps/web/app/(platform)/applications/
-apps/web/components/radar/QuickBidCard.tsx
-apps/web/next.config.js        # rewrite /api -> Nest
-prisma/schema.prisma
-prisma/migrations/20260907190000_add_freelancer_crm_tasks/
-packages/types/src/index.ts
-docs/FREELANCER_DEVELOPER_API.md
-docs/FREELANCER_RADAR_CRM.md
-.env.example
-```
+- **Radar**: búsqueda de proyectos, filtros de calidad, precio medio, precio sugerido y generación de propuestas con IA.
+- **Postulaciones**: envío real de bids, conversación, estados, adjudicación y análisis de conversión/precio.
+- **Auditorías**: plantillas por secciones, score, observaciones, evidencias y archivo de resultados.
+- **CRM y operaciones**: clientes, proyectos, reportes, tareas diarias y aplicación de escritorio.
 
-## Cómo usar
+## Requisitos
 
-### Opción A — merge sobre tu repo actual
-Descomprimí **encima** de tu copia de FSTail (las rutas coinciden).
-Después:
+Node.js 20+, npm 10+, Docker Desktop y PostgreSQL/Redis. La instalación completa, variables, OAuth de Freelancer, auditorías y troubleshooting está en [docs/DEVELOPERS.md](docs/DEVELOPERS.md).
 
-```bash
-cd apps/api
-npx prisma migrate deploy
-npx prisma generate
+## Inicio rápido
+
+```powershell
+npm install
+docker compose up -d
+npm run db:migrate
+npm run dev
 ```
 
-Completá en `.env` las vars `FREELANCER_*` (ver docs/FREELANCER_DEVELOPER_API.md).
+La API queda en `http://localhost:3001` y Swagger en `http://localhost:3001/api/docs`. La web usa el puerto 3000.
 
-### Opción B — solo archivos nuevos
-Copiá solo las carpetas listadas arriba a las mismas rutas en tu monorepo.
+## Validación
 
-## Qué incluye de nuevo
-- Filtro calidad: payment_verified, hire_rate>=60%, desc>=120, bids<=15
-- Bid real vía Developer API (OAuth 1.0a)
-- Award monitor cada 5 min + POST /applications/sync-awards
-- Dashboard multi Dev1/Dev2 + Prompt de rutina
-- CRM + chat por postulación
-- Notificaciones Electron con navegación al click
+```powershell
+npm run typecheck
+npm run build
+```
 
-NOTA: este paquete NO incluye node_modules, .next ni dist. Corré `npm install` en la raíz del monorepo.
+No se versionan secretos, `node_modules`, `.next` ni `dist`. Usá `.env.example` como base y mantené los tokens de Freelancer únicamente en el entorno local o en un secret manager.

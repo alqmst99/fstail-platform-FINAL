@@ -81,7 +81,7 @@ export class FreelancerClient {
       ...(dto.keyword && { query: dto.keyword }),
     });
 
-    return `${FREELANCER_SEARCH_BASE}?${params.toString()}&types=hourly,fixed&projectLanguages=es,en&projectSort=fewestBids&projectSkills=9,17,33,38,69,77,120,219,305,323,335,481,500,598,758,759,788,997,999,1031,1042,1254,1365,1623,1832,2037,2164,2376,2839,3005`;
+    return `${FREELANCER_SEARCH_BASE}?${params.toString()}&types=hourly,fixed&projectLanguages=es,en&projectSort=fewestBids`;
   }
 
   private normalise(raw: unknown): FreelancerProjectExtended | null {
@@ -157,12 +157,12 @@ export class FreelancerClient {
           username: String(owner['username'] ?? ''),
           escrowComSupported: Boolean(owner['escrowcom_interaction_status'] === 'verified'),
           hasLinkedEscrowAccount: Boolean(owner['has_linked_escrow_account']),
-          //paymentVerified,
+          paymentVerified,
         },
         scannedAt: new Date().toISOString(),
-       // timeSubmitted: timeSubmitted ?? new Date().toISOString(),
+        timeSubmitted,
         // Extended fields for strict filter + UI tiers
-       // paymentVerified,
+        paymentVerified,
         hireRate,
         reviewsCount,
         avgBid,

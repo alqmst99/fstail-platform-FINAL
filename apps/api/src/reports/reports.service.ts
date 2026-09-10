@@ -109,6 +109,10 @@ export class ReportsService {
       blocks = this.buildBlocksFromAudits(audits);
     }
 
+    if (dto.applicationReport) {
+      blocks.push(await this.buildApplicationReport(workspaceId));
+    }
+
     const content = { blocks, version: 1 };
 
     return this.prisma.report.create({
@@ -267,7 +271,7 @@ export class ReportsService {
 
     // One audit_summary block per audit
     for (const audit of audits) {
-      const sections = (audit.sections ?? []) as any[];
+      const sections = ((audit.sections ?? []) as any[]).filter((section) => section.enabled !== false);
       const scoreResult = calculateScore(sections);
 
       blocks.push({
@@ -283,6 +287,7 @@ export class ReportsService {
           sections:     sections.map((s: any) => ({
             key:          s.key,
             label:        s.label,
+            enabled:      s.enabled !== false,
             score:        s.score,
             observations: s.observations,
           })),
@@ -314,5 +319,47 @@ export class ReportsService {
     });
 
     return blocks;
+  }
+
+  private async buildApplicationReport(workspaceId: string): Promise<ReportBlock> {
+    const applications = await this.prisma.application.findMany({
+      where: { workspaceId },
+      orderBy: { updatedAt: 'desc' },
+      take: 100,
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        submittedPrice: true,
+        winnerBidPrice: true,
+        clientCountry: true,
+        createdAt: true,
+      },
+    });
+
+    const byStatus: Record<string, number> = {};
+    for (const application of applications) {
+      byStatus[application.status] = (byStatus[application.status] ?? 0) + 1;
+    }
+    const won = byStatus['ADJUDICADO_A_MIME'] ?? 0;
+    const total = applications.length;
+    const averageSubmitted = total
+      ? Math.round(applications.reduce((sum, app) => sum + app.submittedPrice, 0) / total)
+      : 0;
+
+    return {
+      type: 'application_summary',
+      id: randomUUID(),
+      data: {
+        total,
+        won,
+        lost: byStatus['ADJUDICADO_A_OTRO'] ?? 0,
+        open: (byStatus['POSTULADO'] ?? 0) + (byStatus['EN_CONVERSACION'] ?? 0),
+        conversionRate: total ? Math.round((won / total) * 1000) / 10 : 0,
+        averageSubmitted,
+        byStatus,
+        applications,
+      },
+    };
   }
 }

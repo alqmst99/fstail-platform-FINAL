@@ -19,6 +19,7 @@ export default function NewReportPage() {
   const [title, setTitle] = useState('');
   const [audits, setAudits] = useState<AuditOption[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [applicationReport, setApplicationReport] = useState(false);
   const [loadingAudits, setLoadingAudits] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -53,6 +54,7 @@ export default function NewReportPage() {
       const report = await reportsApi.create({
         title: title.trim(),
         auditIds: selected.size > 0 ? Array.from(selected) : undefined,
+        applicationReport,
       });
       router.push(`/reports/${report.id}`);
     } catch (err: any) {
@@ -87,6 +89,19 @@ export default function NewReportPage() {
               className="w-full rounded-md border border-surface-600 bg-surface-900 px-3 py-2 text-sm text-surface-50 placeholder-surface-500 outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500"
             />
           </div>
+
+          <label className="flex items-start gap-3 rounded-md border border-surface-700 bg-surface-900 p-3 text-sm text-surface-300">
+            <input
+              type="checkbox"
+              checked={applicationReport}
+              onChange={(e) => setApplicationReport(e.target.checked)}
+              className="mt-0.5 accent-gold-500"
+            />
+            <span>
+              <span className="block text-surface-100">Incluir informe de postulaciones</span>
+              <span className="text-xs text-surface-500">Métricas de volumen, ganadas, perdidas, abiertas, conversión y precios.</span>
+            </span>
+          </label>
 
           {/* Audit picker */}
           <div>

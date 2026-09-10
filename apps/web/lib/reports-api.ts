@@ -66,6 +66,7 @@ export const reportsApi = {
   create: (data: {
     title: string;
     auditIds?: string[];
+    applicationReport?: boolean;
     blocks?: ReportBlock[];
   }) => api<ReportSummary>('/reports', { method: 'POST', body: JSON.stringify(data) }),
 

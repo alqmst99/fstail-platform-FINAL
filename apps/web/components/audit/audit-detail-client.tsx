@@ -40,6 +40,18 @@ export function AuditDetailClient({ audit: initialAudit }: AuditDetailClientProp
       <div className="flex-1 overflow-auto p-6">
         <div className="mx-auto max-w-2xl space-y-6">
 
+          <details className="rounded-lg border border-gold-500/30 bg-gold-500/5 px-5 py-4 text-sm text-surface-300">
+            <summary className="cursor-pointer font-semibold text-gold-400">Guía rápida para auditar en español</summary>
+            <div className="mt-3 space-y-3 leading-relaxed">
+              <p><strong className="text-surface-100">1. Prepará la revisión.</strong> Abrí la URL en incógnito, anotá fecha, dispositivo, viewport y objetivo del cliente. No guardes contraseñas, tokens ni datos privados.</p>
+              <p><strong className="text-surface-100">2. Recorré el sitio.</strong> Probá Home, navegación, servicios, portfolio, contacto, formularios, footer y responsive en móvil, tablet y escritorio.</p>
+              <p><strong className="text-surface-100">3. Medí lo técnico.</strong> Usá PageSpeed/Lighthouse para performance, WAVE para accesibilidad, DevTools para consola y Network, y SecurityHeaders para headers.</p>
+              <p><strong className="text-surface-100">4. Capturá y adjuntá evidencia.</strong> Guardá la imagen como <code className="text-gold-300">cliente/AAAA-MM-DD/seccion-hallazgo.png</code>. Subila a la carpeta del cliente en Drive/Cloudinary, elegí acceso de lectura para quien tenga el enlace, copiá el link y pegalo en “Evidencias” dentro de la sección correspondiente, una URL por línea.</p>
+              <p><strong className="text-surface-100">5. Escribí el hallazgo.</strong> Indicá qué falla, cómo reproducirlo, a quién afecta, impacto y recomendación. Priorizá alta si bloquea conversión o seguridad, media si degrada la experiencia y baja si es una mejora.</p>
+              <p><strong className="text-surface-100">6. Cerrá y archivá.</strong> Revisá que cada score tenga observación y evidencia cuando corresponda. Enviá la auditoría, generá el informe y archivala cuando no tenga acciones pendientes.</p>
+            </div>
+          </details>
+
           {/* General info (read-only for now) */}
           {audit.generalInfo && Object.keys(audit.generalInfo).length > 0 && (
             <div className="rounded-lg border border-surface-700 bg-surface-800/50 px-5 py-4">

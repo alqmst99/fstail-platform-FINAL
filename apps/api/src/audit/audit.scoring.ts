@@ -9,6 +9,7 @@
 export interface ScoredSection {
   key: string;
   label?: string;
+  enabled?: boolean;
   score: number | null;
   weight?: number; // percentage 0-100; if omitted, equal weight assumed
   observations?: string;
@@ -27,8 +28,9 @@ export interface ScoreResult {
 export type Grade = 'A' | 'B' | 'C' | 'D' | 'F';
 
 export function calculateScore(sections: ScoredSection[]): ScoreResult {
-  const scored = sections.filter((s) => s.score !== null && s.score !== undefined);
-  const totalSections = sections.length;
+  const activeSections = sections.filter((s) => s.enabled !== false);
+  const scored = activeSections.filter((s) => s.score !== null && s.score !== undefined);
+  const totalSections = activeSections.length;
   const scoredSections = scored.length;
 
   if (scoredSections === 0) {
@@ -114,9 +116,25 @@ export function mergeSections(
 ): ScoredSection[] {
   const updateMap = new Map(updates.map((u) => [u.key, u]));
 
-  return existing.map((section) => {
+  const merged = existing.map((section) => {
     const update = updateMap.get(section.key);
     if (!update) return section;
     return { ...section, ...update };
   });
+
+  for (const update of updates) {
+    if (!existing.some((section) => section.key === update.key) && update.key) {
+      merged.push({
+        key: update.key,
+        label: update.label ?? 'Otras secciones',
+        enabled: update.enabled !== false,
+        score: update.score ?? null,
+        weight: update.weight ?? 0,
+        observations: update.observations ?? '',
+        evidenceUrls: update.evidenceUrls ?? [],
+      });
+    }
+  }
+
+  return merged;
 }

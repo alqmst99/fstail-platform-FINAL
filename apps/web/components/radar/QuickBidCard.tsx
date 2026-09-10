@@ -37,7 +37,7 @@ export function QuickBidCard({ project, onSubmitted }: Props) {
   // Evaluación local rápida (el backend ya filtró, pero mostramos motivos si falla)
   const qualified =
     project.paymentVerified !== false &&
-    (project.reviewsCount ?? 0) === 0 || (project.hireRate ?? 1) >= 0.6 &&
+    ((project.reviewsCount ?? 0) === 0 || (project.hireRate ?? 1) >= 0.6) &&
     (project.description?.length ?? 0) >= 120 &&
     (project.bidCount ?? 0) <= 15;
 

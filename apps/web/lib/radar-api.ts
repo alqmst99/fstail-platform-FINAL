@@ -45,10 +45,21 @@ export interface Proposal {
   framework: Framework;
   proposalText: string;
   suggestedPrice: number | null;
+  minimumPrice?: number | null;
+  recommendedPrice?: number | null;
   deliveryDays: number | null;
   difficulty: Difficulty;
   clientSummary: string;
   checklist: string[];
+  analysis?: {
+    responseProbability: number | null;
+    complexity: number | null;
+    whatClientIsBuying: string;
+    risks: string[];
+    criticalErrors: string[];
+    missingInformation: string[];
+    comparison: string;
+  };
   modelUsed: string;
   createdAt: string;
 }
@@ -89,6 +100,12 @@ export const radarApi = {
     minBudget?: number;
     maxBudget?: number;
     requiredSkills?: string[];
+    requirePaymentVerified?: boolean;
+    requireHireRate60?: boolean;
+    requireMinDescription?: boolean;
+    requireMaxBids?: boolean;
+    minDescriptionLength?: number;
+    maxBidCount?: number;
   }) =>
     api<ScanResult>('/radar/scan', { method: 'POST', body: JSON.stringify(params) }),
 

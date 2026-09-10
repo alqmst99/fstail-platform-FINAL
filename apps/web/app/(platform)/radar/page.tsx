@@ -411,8 +411,17 @@ function ProjectCard({ project, scanId }: { project: FreelancerProject; scanId?:
     setGenerating(true);
     setGenError('');
     try {
-      const result = await radarApi.generateProposal({ project, framework, scanId });
-      setProposal(result.proposal);
+      const result = await radarApi.generateProposal({
+        project,
+        framework,
+        scanId,
+      });
+      setProposal({
+        ...result.proposal,
+        minimumPrice: result.generated.minimumPrice,
+        recommendedPrice: result.generated.recommendedPrice,
+        analysis: result.generated.analysis,
+      });
       if (result.proposal?.proposalText) setBidText(result.proposal.proposalText);
       if (result.proposal?.suggestedPrice) setPrice(result.proposal.suggestedPrice);
       if (result.proposal?.deliveryDays) setDays(result.proposal.deliveryDays);
@@ -435,8 +444,11 @@ function ProjectCard({ project, scanId }: { project: FreelancerProject; scanId?:
         freelancerProjId: String(project.id),
         title: project.title,
         rawDescription: project.description || '',
-        avgBidPrice: 0,
-        recommendedPrice: price,
+        avgBidPrice: project.avgBid ?? 0,
+        recommendedPrice:
+          project.avgBid && project.avgBid > 0
+            ? Math.round(project.avgBid * 0.92)
+            : Math.round((project.budget?.minimum ?? 0) * 0.9),
         submittedPrice: price,
         submittedDays: days,
         proposalText: bidText,
@@ -490,6 +502,8 @@ function ProjectCard({ project, scanId }: { project: FreelancerProject; scanId?:
           </div>
           <div className="mt-2 flex gap-3 text-xs text-surface-400">
             <span>{formatBudget(project)}</span>
+            <span>Promedio: {project.avgBid ? `$${project.avgBid}` : '—'}</span>
+            <span>Sugerido: {project.avgBid ? `$${Math.round(project.avgBid * 0.92)}` : `$${Math.round((project.budget?.minimum ?? 0) * 0.9)}`}</span>
             <span>@{project.owner?.username}</span>
           </div>
         </div>
@@ -568,8 +582,26 @@ function ProjectCard({ project, scanId }: { project: FreelancerProject; scanId?:
           </div>
 
           {proposal && (
-            <div className="text-[11px] text-surface-500">
-              IA: {proposal.framework} · sugerido ${proposal.suggestedPrice} · {proposal.deliveryDays}d
+            <div className="rounded-lg border border-surface-700 bg-surface-900 p-3 text-xs text-surface-400 space-y-2">
+              <div>
+                IA: {proposal.framework} · sugerido ${proposal.suggestedPrice ?? '—'} · {proposal.deliveryDays ?? '—'}d
+              </div>
+              {proposal.analysis && (
+                <>
+                  <div className="flex flex-wrap gap-3 text-surface-300">
+                    <span>Respuesta: {proposal.analysis.responseProbability ?? '—'}/10</span>
+                    <span>Complejidad: {proposal.analysis.complexity ?? '—'}/10</span>
+                    <span>Compra: {proposal.analysis.whatClientIsBuying || '—'}</span>
+                  </div>
+                  {proposal.analysis.risks.length > 0 && (
+                    <p><strong className="text-amber-300">Riesgos:</strong> {proposal.analysis.risks.join(' · ')}</p>
+                  )}
+                  {proposal.analysis.criticalErrors.length > 0 && (
+                    <p><strong className="text-red-300">Errores a evitar:</strong> {proposal.analysis.criticalErrors.join(' · ')}</p>
+                  )}
+                  {proposal.analysis.comparison && <p>{proposal.analysis.comparison}</p>}
+                </>
+              )}
             </div>
           )}
         </div>

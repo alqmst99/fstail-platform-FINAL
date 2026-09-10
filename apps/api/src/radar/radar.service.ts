@@ -140,6 +140,7 @@ export class RadarService {
         difficulty:        generated.difficulty as any,
         clientSummary:     generated.clientSummary,
         checklist:         generated.checklist as any,
+        analysis:          generated.analysis as any,
         modelUsed:         generated.modelUsed,
       },
     });
@@ -176,6 +177,7 @@ export class RadarService {
           difficulty:     true,
           clientSummary:  true,
           checklist:      true,
+          analysis:       true,
           modelUsed:      true,
           createdAt:      true,
         },
