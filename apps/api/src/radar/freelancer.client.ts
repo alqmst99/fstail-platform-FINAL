@@ -122,11 +122,11 @@ export class FreelancerClient {
         readBoolean(owner['escrowcom_interaction_status'] === 'verified' ? true : undefined),
       ];
       const paymentVerified = paymentSignals.some((value) =>
-        value === true || value === 'true' || value === 1,
+        value === true,
       )
         ? true
         : paymentSignals.some((value) =>
-            value === false || value === 'false' || value === 0,
+            value === false,
           )
           ? false
           : undefined;
