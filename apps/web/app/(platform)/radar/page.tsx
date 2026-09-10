@@ -11,6 +11,7 @@ import {
   type Framework,
 } from '../../../lib/radar-api';
 import { applicationsApi } from '../../../lib/applications-api';
+import { userPreferencesApi } from '../../../lib/api';
 
 type View = 'scan' | 'history';
 type ProjectTier = 'premium' | 'good' | 'normal' | 'old';
@@ -27,6 +28,23 @@ function hoursSince(iso?: string | null): number {
 
 type FilterPreset = 'balanced' | 'verified' | 'fast' | 'custom';
 
+type RadarPreferences = {
+  keyword?: string;
+  requiredSkills?: string;
+  escrowOnly?: boolean;
+  minBudget?: string;
+  maxBudget?: string;
+  requirePaymentVerified?: boolean;
+  requireHireRate60?: boolean;
+  requireMinDescription?: boolean;
+  requireMaxBids?: boolean;
+  minDescriptionLength?: number;
+  maxBidCount?: number;
+  filterPreset?: FilterPreset;
+  autoScan?: boolean;
+  scanIntervalMinutes?: number;
+};
+
 function paymentState(project: FreelancerProject): 'verified' | 'unverified' | 'unknown' {
   if (project.paymentVerified === true || project.owner?.paymentVerified === true) return 'verified';
   if (project.paymentVerified === false || project.owner?.paymentVerified === false) return 'unverified';
@@ -35,6 +53,7 @@ function paymentState(project: FreelancerProject): 'verified' | 'unverified' | '
 
 /** Clasificación de radar */
 function classifyTier(p: FreelancerProject & Record<string, any>): ProjectTier {
+  if (p.tier) return p.tier as ProjectTier;
   const ageH = hoursSince(p.timeSubmitted || p.scannedAt || p.postedAt);
   const bids = Number(p.bidCount ?? 0);
   const budgetMax = Number(p.budget?.maximum ?? p.budget?.minimum ?? 0);
@@ -125,6 +144,9 @@ export default function RadarPage() {
   const [minDescriptionLength, setMinDescriptionLength] = useState(120);
   const [maxBidCount, setMaxBidCount] = useState(15);
   const [filterPreset, setFilterPreset] = useState<FilterPreset>('balanced');
+  const [autoScan, setAutoScan] = useState(false);
+  const [scanIntervalMinutes, setScanIntervalMinutes] = useState(15);
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [applicationByProject, setApplicationByProject] = useState<Record<string, any>>({});
 
   useEffect(() => {
@@ -137,6 +159,29 @@ export default function RadarPage() {
         setApplicationByProject(mapped);
       })
       .catch(() => setApplicationByProject({}));
+  }, []);
+
+  useEffect(() => {
+    userPreferencesApi.get()
+      .then(({ preferences }) => {
+        const radar = (preferences.radar ?? {}) as RadarPreferences;
+        if (radar.keyword !== undefined) setKeyword(radar.keyword);
+        if (radar.requiredSkills !== undefined) setRequiredSkills(radar.requiredSkills);
+        if (radar.escrowOnly !== undefined) setEscrowOnly(radar.escrowOnly);
+        if (radar.minBudget !== undefined) setMinBudget(radar.minBudget);
+        if (radar.maxBudget !== undefined) setMaxBudget(radar.maxBudget);
+        if (radar.requirePaymentVerified !== undefined) setRequirePaymentVerified(radar.requirePaymentVerified);
+        if (radar.requireHireRate60 !== undefined) setRequireHireRate60(radar.requireHireRate60);
+        if (radar.requireMinDescription !== undefined) setRequireMinDescription(radar.requireMinDescription);
+        if (radar.requireMaxBids !== undefined) setRequireMaxBids(radar.requireMaxBids);
+        if (radar.minDescriptionLength !== undefined) setMinDescriptionLength(radar.minDescriptionLength);
+        if (radar.maxBidCount !== undefined) setMaxBidCount(radar.maxBidCount);
+        if (radar.filterPreset !== undefined) setFilterPreset(radar.filterPreset);
+        if (radar.autoScan !== undefined) setAutoScan(radar.autoScan);
+        if (radar.scanIntervalMinutes !== undefined) setScanIntervalMinutes(radar.scanIntervalMinutes);
+      })
+      .catch(() => {})
+      .finally(() => setPreferencesLoaded(true));
   }, []);
 
   const sortedProjects = useMemo(
@@ -189,15 +234,14 @@ export default function RadarPage() {
     applyPreset('custom');
   }
 
-  async function handleScan(e: FormEvent) {
-    e.preventDefault();
+  async function runScan() {
     setScanError('');
     setScanning(true);
     setScanResult(null);
     try {
       const params: Record<string, unknown> = {
         escrowOnly,
-        limit: 80,
+        limit: 200,
         requirePaymentVerified,
         requireHireRate60,
         requireMinDescription,
@@ -216,12 +260,41 @@ export default function RadarPage() {
 
       const result = await radarApi.scan(params as any);
       setScanResult(result);
+      await userPreferencesApi.update({
+        radar: {
+          keyword,
+          requiredSkills,
+          escrowOnly,
+          minBudget,
+          maxBudget,
+          requirePaymentVerified,
+          requireHireRate60,
+          requireMinDescription,
+          requireMaxBids,
+          minDescriptionLength,
+          maxBidCount,
+          filterPreset,
+          autoScan,
+          scanIntervalMinutes,
+        } satisfies RadarPreferences,
+      }).catch(() => {});
     } catch (err: any) {
       setScanError(err.message ?? 'Scan failed');
     } finally {
       setScanning(false);
     }
   }
+
+  function handleScan(e: FormEvent) {
+    e.preventDefault();
+    void runScan();
+  }
+
+  useEffect(() => {
+    if (!preferencesLoaded || !autoScan) return;
+    const interval = window.setInterval(() => void runScan(), scanIntervalMinutes * 60_000);
+    return () => window.clearInterval(interval);
+  }, [preferencesLoaded, autoScan, scanIntervalMinutes, keyword, requiredSkills, escrowOnly, minBudget, maxBudget, requirePaymentVerified, requireHireRate60, requireMinDescription, requireMaxBids, minDescriptionLength, maxBidCount]);
 
   return (
     <div className="flex h-full flex-col">
@@ -270,6 +343,33 @@ export default function RadarPage() {
                 className="mt-1 w-full rounded-lg border border-teal-800/70 bg-[#0b2528] px-3 py-2 text-sm text-surface-100 placeholder:text-teal-100/30"
               />
               <p className="mt-1 text-[10px] text-teal-100/40">El proyecto debe contener todas.</p>
+            </div>
+
+            <div className="rounded-xl border border-gold-500/30 bg-gold-500/5 p-3 space-y-2">
+              <label className="flex items-center justify-between gap-3 text-sm text-surface-200">
+                <span>
+                  <span className="block font-medium">Auto-scan</span>
+                  <span className="block text-[10px] text-surface-500">Busca nuevos proyectos automáticamente</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={autoScan}
+                  onChange={(e) => setAutoScan(e.target.checked)}
+                  className="h-4 w-4 accent-gold-500"
+                />
+              </label>
+              {autoScan && (
+                <label className="flex items-center justify-between text-xs text-surface-400">
+                  Cada
+                  <select
+                    value={scanIntervalMinutes}
+                    onChange={(e) => setScanIntervalMinutes(Number(e.target.value))}
+                    className="rounded border border-surface-700 bg-surface-950 px-2 py-1 text-xs text-surface-200"
+                  >
+                    {[5, 10, 15, 30, 60].map((minutes) => <option key={minutes} value={minutes}>{minutes} min</option>)}
+                  </select>
+                </label>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-2">

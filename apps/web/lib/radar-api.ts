@@ -28,6 +28,17 @@ export interface FreelancerProject {
   reviewsCount?: number;
   avgBid?: number;
   clientCountry?: string;
+  tier?: 'premium' | 'good' | 'normal' | 'old';
+  flPaymentVerified?: boolean;
+  paymentVerificationSource?: string;
+  clientScore?: number;
+  bidScore?: number;
+  isEscrowProject?: boolean;
+  escrowSupportedCurrency?: boolean;
+  minimumBid?: number;
+  maximumBid?: number;
+  defaultBid?: number;
+  currencyExchangeRate?: number;
 }
 
 export interface ScanResult {

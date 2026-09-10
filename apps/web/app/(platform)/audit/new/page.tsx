@@ -2,8 +2,10 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { clientsApi, projectsApi, type Client, type Project } from '../../../../lib/crm-api';
+import { request } from '../../../../lib/api';
 
 export default function NewAuditPage() {
   const router = useRouter();
@@ -11,8 +13,22 @@ export default function NewAuditPage() {
   const [title, setTitle] = useState('');
   const [clientId, setClientId] = useState('');
   const [projectId, setProjectId] = useState('');
+  const [clients, setClients] = useState<Client[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loadingOptions, setLoadingOptions] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    Promise.all([
+      clientsApi.list({ page: 1, pageSize: 100 }),
+      projectsApi.list({ page: 1, pageSize: 100 }),
+    ]).then(([clientResult, projectResult]) => {
+      setClients(clientResult.data);
+      setProjects(projectResult.data);
+    }).catch(() => setError('No se pudieron cargar clientes y proyectos. Podés crear el audit sin vincularlos.'))
+      .finally(() => setLoadingOptions(false));
+  }, []);
 
   async function createAudit(e: React.FormEvent) {
     e.preventDefault();
@@ -21,28 +37,14 @@ export default function NewAuditPage() {
     setError('');
 
     try {
-      const API =
-        process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
-
-      const res = await fetch(`${API}/api/audits`, {
+      const audit = await request<any>('/audits', {
         method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+        body: {
           title,
           clientId: clientId || undefined,
           projectId: projectId || undefined,
-        }),
+        },
       });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || 'Failed to create audit');
-      }
-
-      const audit = await res.json();
 
       router.push(`/audit/${audit.id}`);
     } catch (err: any) {
@@ -75,27 +77,19 @@ export default function NewAuditPage() {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm">
-            Client ID
-          </label>
-
-          <input
-            value={clientId}
-            onChange={(e) => setClientId(e.target.value)}
-            className="w-full rounded border p-2"
-          />
+          <label className="mb-1 block text-sm">Cliente (opcional)</label>
+          <select value={clientId} onChange={(e) => setClientId(e.target.value)} disabled={loadingOptions} className="w-full rounded border p-2">
+            <option value="">Sin cliente</option>
+            {clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}
+          </select>
         </div>
 
         <div>
-          <label className="mb-1 block text-sm">
-            Project ID
-          </label>
-
-          <input
-            value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
-            className="w-full rounded border p-2"
-          />
+          <label className="mb-1 block text-sm">Proyecto (opcional)</label>
+          <select value={projectId} onChange={(e) => setProjectId(e.target.value)} disabled={loadingOptions} className="w-full rounded border p-2">
+            <option value="">Sin proyecto</option>
+            {projects.filter((project) => !clientId || project.client?.id === clientId).map((project) => <option key={project.id} value={project.id}>{project.title}</option>)}
+          </select>
         </div>
 
         {error && (

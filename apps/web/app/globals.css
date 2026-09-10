@@ -33,3 +33,8 @@
     color: #f8fafc;
   }
 }
+
+@keyframes loading-sweep {
+  from { transform: translateX(-140%); }
+  to { transform: translateX(420%); }
+}

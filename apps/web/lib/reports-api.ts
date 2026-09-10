@@ -1,5 +1,5 @@
 // apps/web/lib/reports-api.ts
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import { request } from './api';
 
 export interface ReportBlock {
   type: string;
@@ -33,17 +33,7 @@ export interface PublishResult {
 }
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API}/api${path}`, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    ...init,
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).message ?? res.statusText);
-  }
-  if (res.status === 204) return undefined as T;
-  return res.json();
+  return request<T>(path, init as any);
 }
 
 function qs(params: Record<string, unknown>) {
@@ -90,7 +80,7 @@ export const reportsApi = {
 
   // Public portal — no auth cookie needed
   getPortal: (token: string) =>
-    fetch(`${API}/api/reports/portal/${token}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'}/api/reports/portal/${token}`)
       .then((r) => {
         if (!r.ok) throw new Error(r.status === 403 ? 'expired' : 'not_found');
         return r.json() as Promise<ReportDetail>;

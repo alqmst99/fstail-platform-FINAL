@@ -6,6 +6,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { UpdateBanner } from '../../components/update-banner';
 import { PlatformAuthGate } from '../../components/auth/platform-auth-gate';
+import { PlatformSidebar } from '../../components/layout/platform-sidebar';
 
 async function getServerUser() {
   const cookieStore = cookies();
@@ -38,36 +39,7 @@ export default function PlatformLayout({
         <UpdateBanner />
 
         <div className="flex flex-1 overflow-hidden">
-          <aside className="flex w-56 flex-col border-r border-surface-700 bg-surface-950 flex-shrink-0">
-            <div className="flex h-12 items-center border-b border-surface-700 px-4">
-              <span className="text-sm font-bold text-gold-500">FSTail</span>
-              <span className="ml-1 text-sm font-light text-surface-400">
-                Platform
-              </span>
-            </div>
-
-            <nav className="flex-1 space-y-0.5 px-2 py-3">
-              {NAV_ITEMS.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-surface-400 transition hover:bg-surface-800 hover:text-surface-50"
-                >
-                  <span className="text-base">{item.icon}</span>
-                  {item.label}
-                </a>
-              ))}
-            </nav>
-
-            <div className="border-t border-surface-700 px-3 py-3">
-              <a
-                href="/settings"
-                className="block text-xs text-surface-600 hover:text-surface-400 transition"
-              >
-                Settings →
-              </a>
-            </div>
-          </aside>
+          <PlatformSidebar />
 
           <main className="flex-1 overflow-auto">{children}</main>
         </div>
@@ -75,14 +47,4 @@ export default function PlatformLayout({
     </PlatformAuthGate>
   );
 }
-
-const NAV_ITEMS = [
-  { href: '/dashboard',     icon: '🏠', label: 'Home'           },
-  { href: '/radar',         icon: '📡', label: 'Radar'          },
-  { href: '/applications',  icon: '📨', label: 'Postulaciones'  },
-  { href: '/crm',           icon: '👥', label: 'CRM'            },
-  { href: '/audit',         icon: '🔍', label: 'Audit'          },
-  { href: '/reports',       icon: '📊', label: 'Reports'        },
-  { href: '/settings',      icon: '⚙️', label: 'Settings'       },
-];
     

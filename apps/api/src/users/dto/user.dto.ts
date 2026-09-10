@@ -4,6 +4,7 @@ import {
   IsEmail,
   IsOptional,
   IsIn,
+  IsObject,
   MinLength,
   MaxLength,
 } from 'class-validator';
@@ -55,6 +56,11 @@ export class UpdateProfileDto {
   @MinLength(8)
   @MaxLength(128)
   newPassword?: string;
+}
+
+export class UpdateUserPreferencesDto {
+  @IsObject()
+  preferences!: Record<string, unknown>;
 }
 
 export class QueryUsersDto extends PaginationDto {

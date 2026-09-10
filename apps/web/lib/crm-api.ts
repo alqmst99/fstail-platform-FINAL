@@ -2,7 +2,7 @@
 // Typed wrappers for the CRM endpoints.
 // All calls go through the base request() in api.ts (auth, cookie, refresh handled there).
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import { request } from './api';
 
 type ClientStatus = 'LEAD' | 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
 type ProjectStatus = 'ACTIVE' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
@@ -55,17 +55,7 @@ export interface ClientStats {
 // ── helpers ──────────────────────────────────────────────────────────
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API}/api${path}`, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    ...init,
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).message ?? res.statusText);
-  }
-  if (res.status === 204) return undefined as T;
-  return res.json();
+  return request<T>(path, init as any);
 }
 
 function qs(params: Record<string, unknown>) {

@@ -99,6 +99,24 @@ export class UsersService {
     });
   }
 
+  async getPreferences(userId: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, deletedAt: null },
+      select: { preferences: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+    return { preferences: user.preferences ?? {} };
+  }
+
+  async updatePreferences(userId: string, preferences: Record<string, unknown>) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { preferences: preferences as any },
+      select: { preferences: true },
+    });
+    return { preferences: user.preferences ?? {} };
+  }
+
   // ── GET /users (workspace members) ───────────────────────────────
 
   async findAll(workspaceId: string, query: QueryUsersDto) {

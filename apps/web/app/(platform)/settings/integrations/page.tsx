@@ -5,6 +5,7 @@
 // - In Electron: key is stored via safeStorage IPC (OS keychain, Phase 9)
 
 import { useState, useEffect, FormEvent } from 'react';
+import { userPreferencesApi } from '../../../../lib/api';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -30,7 +31,65 @@ export default function IntegrationsPage() {
     <div className="space-y-6">
       <GroqSection />
       <FreelancerSection />
+      <RadarAutomationSection />
     </div>
+  );
+}
+
+function RadarAutomationSection() {
+  const [technologies, setTechnologies] = useState('WordPress, React, Node.js, TypeScript');
+  const [autoScan, setAutoScan] = useState(false);
+  const [interval, setInterval] = useState(15);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    userPreferencesApi.get().then(({ preferences }) => {
+      const radar = (preferences.radar ?? {}) as Record<string, unknown>;
+      if (typeof radar.requiredSkills === 'string' && radar.requiredSkills) setTechnologies(radar.requiredSkills);
+      if (typeof radar.autoScan === 'boolean') setAutoScan(radar.autoScan);
+      if (typeof radar.scanIntervalMinutes === 'number') setInterval(radar.scanIntervalMinutes);
+    }).catch(() => {});
+  }, []);
+
+  async function save() {
+    await userPreferencesApi.update({
+      radar: {
+        requiredSkills: technologies,
+        autoScan,
+        scanIntervalMinutes: interval,
+      },
+    });
+    setSaved(true);
+    window.setTimeout(() => setSaved(false), 2500);
+  }
+
+  return (
+    <SettingsCard title="Radar automático">
+      <div className="space-y-4">
+        <p className="text-sm text-surface-400">Estas preferencias se guardan en tu usuario y se reutilizan en cada auto-scan.</p>
+        <label className="block text-sm text-surface-300">
+          Tecnologías básicas
+          <input value={technologies} onChange={(e) => setTechnologies(e.target.value)} className="mt-1 w-full rounded-md border border-surface-600 bg-surface-900 px-3 py-2 text-sm text-surface-50" />
+          <span className="mt-1 block text-xs text-surface-500">Separadas por coma. Se usan como skills requeridas.</span>
+        </label>
+        <label className="flex items-center justify-between rounded-md border border-surface-700 bg-surface-900 p-3 text-sm text-surface-300">
+          Activar auto-scan
+          <input type="checkbox" checked={autoScan} onChange={(e) => setAutoScan(e.target.checked)} className="h-4 w-4 accent-gold-500" />
+        </label>
+        {autoScan && (
+          <label className="flex items-center justify-between text-sm text-surface-300">
+            Intervalo
+            <select value={interval} onChange={(e) => setInterval(Number(e.target.value))} className="rounded-md border border-surface-600 bg-surface-900 px-2 py-1.5">
+              {[5, 10, 15, 30, 60].map((value) => <option key={value} value={value}>{value} minutos</option>)}
+            </select>
+          </label>
+        )}
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={() => void save()} className={BTN_PRIMARY}>Guardar preferencias</button>
+          {saved && <span className="text-sm text-emerald-400">Guardado ✓</span>}
+        </div>
+      </div>
+    </SettingsCard>
   );
 }
 

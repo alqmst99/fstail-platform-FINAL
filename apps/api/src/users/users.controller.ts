@@ -19,6 +19,7 @@ import {
   InviteUserDto,
   UpdateUserRoleDto,
   UpdateProfileDto,
+  UpdateUserPreferencesDto,
   QueryUsersDto,
 } from './dto/user.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -51,6 +52,19 @@ export class UsersController {
     @Body() dto: UpdateProfileDto,
   ) {
     return this.usersService.updateMe(userId, dto);
+  }
+
+  @Get('me/preferences')
+  getPreferences(@CurrentUser('id') userId: string) {
+    return this.usersService.getPreferences(userId);
+  }
+
+  @Patch('me/preferences')
+  updatePreferences(
+    @CurrentUser('id') userId: string,
+    @Body() dto: UpdateUserPreferencesDto,
+  ) {
+    return this.usersService.updatePreferences(userId, dto.preferences);
   }
 
   // GET /api/users  (workspace members — ADMIN+)

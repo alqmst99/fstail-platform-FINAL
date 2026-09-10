@@ -130,6 +130,15 @@ export const authApi = {
     }),
 };
 
+export const userPreferencesApi = {
+  get: () => request<{ preferences: Record<string, unknown> }>('/users/me/preferences'),
+  update: (preferences: Record<string, unknown>) =>
+    request<{ preferences: Record<string, unknown> }>('/users/me/preferences', {
+      method: 'PATCH',
+      body: preferences,
+    }),
+};
+
 // ── Type helpers (mirrors @fstail/types until the package is linked) ──
 
 interface AuthUser {

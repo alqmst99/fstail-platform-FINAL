@@ -97,10 +97,29 @@ export class FreelancerClient {
       const reputation = owner['employer_reputation']?.['entire'] ?? owner['reputation'] ?? {};
       const status = owner['status'] ?? {};
 
-      const paymentSignals = [
-        status['payment_verified'],
+      const readBoolean = (...values: unknown[]): boolean | undefined => {
+        for (const value of values) {
+          if (value === true || value === 1 || value === '1' || value === 'true') return true;
+          if (value === false || value === 0 || value === '0' || value === 'false') return false;
+        }
+        return undefined;
+      };
+
+      const flPaymentVerified = readBoolean(
+        p['flPaymentVerified'],
+        p['fl_payment_verified'],
+        p['payment_verified'],
+        owner['flPaymentVerified'],
+        owner['fl_payment_verified'],
         owner['payment_verified'],
-        owner['escrowcom_interaction_status'] === 'verified' ? true : undefined,
+        status['flPaymentVerified'],
+        status['fl_payment_verified'],
+        status['payment_verified'],
+      );
+      const paymentSignals = [
+        flPaymentVerified,
+        readBoolean(owner['payment_verified'], status['payment_verified']),
+        readBoolean(owner['escrowcom_interaction_status'] === 'verified' ? true : undefined),
       ];
       const paymentVerified = paymentSignals.some((value) =>
         value === true || value === 'true' || value === 1,
@@ -116,6 +135,13 @@ export class FreelancerClient {
       const reviewsCount = Number(reputation['reviews'] ?? reputation['review_count'] ?? 0);
       const avgBid = Number(bidStats['avg_bid'] ?? bidStats['bid_avg'] ?? 0);
       const bidCount = Number(bidStats['bid_count'] ?? 0);
+      const budgetMax = Number(budget['maximum'] ?? budget['minimum'] ?? 0);
+      const clientScore = Number(p['score'] ?? owner['score'] ?? 0) || undefined;
+      const isEscrowProject = readBoolean(p['is_escrow_project']);
+      const escrowSupportedCurrency = readBoolean(currency['is_escrowcom_supported']);
+      const minimumBid = Number(p['minimum_bid'] ?? 0) || undefined;
+      const maximumBid = Number(p['maximum_bid'] ?? 0) || undefined;
+      const defaultBid = Number(p['default_bid']?.['amount'] ?? 0) || undefined;
 
       const location = owner['location'] ?? {};
       const country =
@@ -144,6 +170,16 @@ export class FreelancerClient {
         timeSubmitted = new Date(submittedRaw).toISOString();
       }
 
+      const ageHours = submittedRaw
+        ? Math.max(0, (Date.now() - new Date(timeSubmitted ?? 0).getTime()) / 3_600_000)
+        : 999;
+      const tier = paymentVerified === true && budgetMax >= 200 && bidCount <= 8 &&
+        (reviewsCount === 0 || hireRate >= 0.6) && ageHours <= 6
+        ? 'premium'
+        : paymentVerified === true && bidCount <= 12 && ageHours <= 6 && budgetMax >= 50
+          ? 'good'
+          : ageHours > 48 ? 'old' : ageHours <= 6 ? 'normal' : 'old';
+
       return {
         id: Number(p['id']),
         title: String(p['title'] ?? '').trim(),
@@ -159,6 +195,18 @@ export class FreelancerClient {
           code: String(currency['code'] ?? 'USD'),
         },
         bidCount,
+        tier,
+        flPaymentVerified,
+        paymentVerificationSource: flPaymentVerified !== undefined
+          ? 'freelancer.flPaymentVerified'
+          : paymentVerified !== undefined ? 'freelancer.payment_verified' : undefined,
+        clientScore,
+        isEscrowProject,
+        escrowSupportedCurrency,
+        minimumBid,
+        maximumBid,
+        defaultBid,
+        currencyExchangeRate: Number(currency['exchange_rate'] ?? 0) || undefined,
         skills: Array.isArray(p['jobs'])
           ? p['jobs'].map((j: any) => String(j['name'] ?? '')).filter(Boolean)
           : [],
