@@ -44,6 +44,12 @@ const FRAMEWORK_PROMPTS: Record<string, string> = {
 - Bridge: Explain how you get them there`,
 };
 
+const DEFAULT_GROQ_MODEL = 'openai/gpt-oss-20b';
+const GROQ_MODEL_FALLBACKS = [
+  'openai/gpt-oss-20b',
+  'meta-llama/llama-4-scout-17b-16e-instruct',
+];
+
 @Injectable()
 export class ProposalGenerator {
   private readonly logger = new Logger(ProposalGenerator.name);
@@ -54,7 +60,8 @@ export class ProposalGenerator {
     this.groq = new Groq({
       apiKey: config.getOrThrow<string>('GROQ_API_KEY'),
     });
-    this.model = config.get<string>('GROQ_MODEL', 'llama-3.3-70b-versatile');
+    const configuredModel = config.get<string>('GROQ_MODEL', DEFAULT_GROQ_MODEL);
+    this.model = configuredModel;
   }
 
   async generate(
@@ -68,7 +75,8 @@ export class ProposalGenerator {
     const systemPrompt = `You are a Freelancer.com proposal strategist and acquisition analyst.
   Your objective is to start a conversation, not to write a generic bid.
   Never invent experience, clients, certifications, portfolio work, results, or technical facts.
-  Use the portfolio only when it is genuinely relevant: https://alqmst99.github.io/profesional-plan/pages/projects.html
+  Use this portfolio only when it is genuinely relevant to the requested work: https://alqmst99.github.io/profesional-plan/pages/projects.html
+  If you mention the portfolio, include the exact URL and connect it to a relevant capability. Never include it just to fill space.
   Always respond with valid JSON only. No markdown, no preamble.`;
 
     const currencySign = project.currency?.sign ?? '$';
@@ -85,6 +93,10 @@ MARKET AVERAGE BID: ${avgBid ? `${currencySign}${avgBid}` : 'unknown'}
 RECOMMENDED BID: ${recommendedPrice ? `${currencySign}${recommendedPrice}` : 'unknown'}
 SKILLS REQUIRED: ${project.skills.join(', ')}
 CURRENT BID COUNT: ${project.bidCount}
+CLIENT PAYMENT VERIFIED: ${project.paymentVerified === true ? 'yes' : project.paymentVerified === false ? 'no' : 'unknown'}
+CLIENT COUNTRY: ${project.clientCountry ?? 'unknown'}
+CLIENT REPUTATION: ${project.clientReputation ?? 'unknown'}
+CLIENT PROJECTS POSTED / COMPLETED: ${project.clientProjectsPosted ?? 'unknown'} / ${project.clientProjectsCompleted ?? 'unknown'}
 ${context ? `\nAGENCY CONTEXT: ${context}` : ''}
 
 PROFILE CONTEXT: web developer working with systems, automation, SaaS, React, Node.js, PHP, WordPress, APIs, databases, technical SEO, UI/UX and infrastructure. Mention these only when directly relevant.
@@ -128,16 +140,19 @@ Respond ONLY with this JSON object (no markdown, no extra text):
 }`;
 
     try {
-      const completion = await this.groq.chat.completions.create({
-        model: this.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user',   content: userPrompt   },
-        ],
-        temperature: 0.7,
-        max_tokens: 1536,
-        response_format: { type: 'json_object' },
-      });
+      let completion;
+      try {
+        completion = await this.createCompletion(systemPrompt, userPrompt, this.model);
+      } catch (firstError: any) {
+        const firstStatus = firstError?.status ?? firstError?.statusCode;
+        if (firstStatus !== 404) throw firstError;
+
+        const fallbackModel = GROQ_MODEL_FALLBACKS.find((model) => model !== this.model);
+        if (!fallbackModel) throw firstError;
+        this.logger.warn(`Groq model ${this.model} unavailable; retrying with ${fallbackModel}`);
+        this.model = fallbackModel;
+        completion = await this.createCompletion(systemPrompt, userPrompt, this.model);
+      }
 
       const raw = completion.choices[0]?.message?.content ?? '{}';
       const parsed = this.parseResponse(raw);
@@ -162,10 +177,28 @@ Respond ONLY with this JSON object (no markdown, no extra text):
           'Groq alcanzó el límite de uso (429). Esperá unos segundos o revisá el límite de tu cuenta.',
         );
       }
+      if (status === 404) {
+        throw new ServiceUnavailableException(
+          `El modelo de Groq no está disponible (${this.model}). Configurá GROQ_MODEL=${DEFAULT_GROQ_MODEL} y reiniciá la API.`,
+        );
+      }
       throw new ServiceUnavailableException(
         `Groq no pudo generar la propuesta (${status ?? 'error'}). Revisá el log de la API.`,
       );
     }
+  }
+
+  private createCompletion(systemPrompt: string, userPrompt: string, model: string) {
+    return this.groq.chat.completions.create({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: 0.7,
+      max_tokens: 1536,
+      response_format: { type: 'json_object' },
+    });
   }
 
   private parseResponse(raw: string): Omit<GeneratedProposal, 'modelUsed'> {

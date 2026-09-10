@@ -14,4 +14,4 @@ startCommand: cd apps/api && node dist/main
       - key: JWT_REFRESH_EXPIRES_IN
         value: 30d
       - key: GROQ_MODEL
-        value: llama-3.3-70b-versatile
+        value: openai/gpt-oss-20b

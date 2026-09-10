@@ -261,7 +261,8 @@ export default function RadarPage() {
       const result = await radarApi.scan(params as any);
       setScanResult(result);
       await userPreferencesApi.update({
-        radar: {
+        preferences: {
+          radar: {
           keyword,
           requiredSkills,
           escrowOnly,
@@ -276,7 +277,8 @@ export default function RadarPage() {
           filterPreset,
           autoScan,
           scanIntervalMinutes,
-        } satisfies RadarPreferences,
+          } satisfies RadarPreferences,
+        },
       }).catch(() => {});
     } catch (err: any) {
       setScanError(err.message ?? 'Scan failed');

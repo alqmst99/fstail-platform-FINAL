@@ -43,7 +43,7 @@ export class ProposalGenerator {
     this.groq = new Groq({
       apiKey: config.getOrThrow<string>('GROQ_API_KEY'),
     });
-    this.model = config.get<string>('GROQ_MODEL', 'llama-3.3-70b-versatile');
+    this.model = config.get<string>('GROQ_MODEL', 'openai/gpt-oss-20b');
   }
 
   async generate(

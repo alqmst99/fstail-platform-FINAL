@@ -53,10 +53,12 @@ function RadarAutomationSection() {
 
   async function save() {
     await userPreferencesApi.update({
-      radar: {
+      preferences: {
+        radar: {
         requiredSkills: technologies,
         autoScan,
         scanIntervalMinutes: interval,
+        },
       },
     });
     setSaved(true);
