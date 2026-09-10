@@ -25,12 +25,20 @@ function hoursSince(iso?: string | null): number {
   return (Date.now() - t) / 3_600_000;
 }
 
+type FilterPreset = 'balanced' | 'verified' | 'fast' | 'custom';
+
+function paymentState(project: FreelancerProject): 'verified' | 'unverified' | 'unknown' {
+  if (project.paymentVerified === true || project.owner?.paymentVerified === true) return 'verified';
+  if (project.paymentVerified === false || project.owner?.paymentVerified === false) return 'unverified';
+  return 'unknown';
+}
+
 /** Clasificación de radar */
 function classifyTier(p: FreelancerProject & Record<string, any>): ProjectTier {
   const ageH = hoursSince(p.timeSubmitted || p.scannedAt || p.postedAt);
   const bids = Number(p.bidCount ?? 0);
   const budgetMax = Number(p.budget?.maximum ?? p.budget?.minimum ?? 0);
-  const paymentOk = p.paymentVerified !== false && (p.owner as any)?.paymentVerified !== false;
+  const paymentOk = p.paymentVerified === true || (p.owner as any)?.paymentVerified === true;
   const hire = Number((p as any).hireRate ?? 0);
   const reviews = Number((p as any).reviewsCount ?? 0);
 
@@ -105,6 +113,7 @@ export default function RadarPage() {
   const [scanError, setScanError] = useState('');
 
   const [keyword, setKeyword] = useState('');
+  const [requiredSkills, setRequiredSkills] = useState('');
   const [escrowOnly, setEscrowOnly] = useState(false);
   const [minBudget, setMinBudget] = useState('');
   const [maxBudget, setMaxBudget] = useState('');
@@ -115,6 +124,7 @@ export default function RadarPage() {
   const [requireMaxBids, setRequireMaxBids] = useState(false);
   const [minDescriptionLength, setMinDescriptionLength] = useState(120);
   const [maxBidCount, setMaxBidCount] = useState(15);
+  const [filterPreset, setFilterPreset] = useState<FilterPreset>('balanced');
   const [applicationByProject, setApplicationByProject] = useState<Record<string, any>>({});
 
   useEffect(() => {
@@ -140,6 +150,45 @@ export default function RadarPage() {
     return c;
   }, [sortedProjects]);
 
+  function applyPreset(preset: FilterPreset) {
+    setFilterPreset(preset);
+    if (preset === 'balanced') {
+      setRequirePaymentVerified(false);
+      setRequireHireRate60(true);
+      setRequireMinDescription(true);
+      setMinDescriptionLength(120);
+      setRequireMaxBids(true);
+      setMaxBidCount(15);
+    } else if (preset === 'verified') {
+      setRequirePaymentVerified(true);
+      setRequireHireRate60(true);
+      setRequireMinDescription(true);
+      setMinDescriptionLength(180);
+      setRequireMaxBids(true);
+      setMaxBidCount(12);
+    } else if (preset === 'fast') {
+      setRequirePaymentVerified(false);
+      setRequireHireRate60(false);
+      setRequireMinDescription(false);
+      setRequireMaxBids(true);
+      setMaxBidCount(8);
+    } else {
+      setRequirePaymentVerified(false);
+      setRequireHireRate60(false);
+      setRequireMinDescription(false);
+      setRequireMaxBids(false);
+    }
+  }
+
+  function clearFilters() {
+    setKeyword('');
+    setRequiredSkills('');
+    setEscrowOnly(false);
+    setMinBudget('');
+    setMaxBudget('');
+    applyPreset('custom');
+  }
+
   async function handleScan(e: FormEvent) {
     e.preventDefault();
     setScanError('');
@@ -157,6 +206,11 @@ export default function RadarPage() {
         maxBidCount,
       };
       if (keyword.trim()) params.keyword = keyword;
+      const skills = requiredSkills
+        .split(',')
+        .map((skill) => skill.trim())
+        .filter(Boolean);
+      if (skills.length) params.requiredSkills = skills;
       if (minBudget) params.minBudget = Number(minBudget);
       if (maxBudget) params.maxBudget = Number(maxBudget);
 
@@ -171,21 +225,21 @@ export default function RadarPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center justify-between border-b border-surface-700 px-5 py-3">
+      <header className="flex items-center justify-between border-b border-teal-700/50 bg-[#071a1d]/90 px-5 py-3">
         <div>
-          <h1 className="text-lg font-semibold text-surface-50">Radar</h1>
-          <p className="text-xs text-surface-500">
+          <h1 className="text-lg font-semibold text-gold-400">Radar</h1>
+          <p className="text-xs text-teal-200/60">
             Ordenado por calidad · tiempo · bids · colores por tier
           </p>
         </div>
-        <div className="flex gap-1 rounded-lg bg-surface-900 p-0.5 border border-surface-700">
+        <div className="flex gap-1 rounded-lg bg-surface-950/80 p-0.5 border border-teal-800/60">
           {(['scan', 'history'] as View[]).map((v) => (
             <button
               key={v}
               type="button"
               onClick={() => setView(v)}
               className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
-                view === v ? 'bg-surface-700 text-surface-50' : 'text-surface-400 hover:text-surface-200'
+                view === v ? 'bg-gold-500 text-surface-950' : 'text-teal-100/60 hover:text-gold-300'
               }`}
             >
               {v === 'scan' ? 'Scan' : 'Historial'}
@@ -195,7 +249,7 @@ export default function RadarPage() {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-72 shrink-0 border-r border-surface-700 bg-surface-950 overflow-y-auto p-4 space-y-5">
+        <aside className="w-72 shrink-0 border-r border-teal-800/60 bg-[#071a1d] overflow-y-auto p-4 space-y-5">
           <form onSubmit={handleScan} className="space-y-4">
             <div>
               <label className="text-xs text-surface-500">Keyword</label>
@@ -205,6 +259,17 @@ export default function RadarPage() {
                 placeholder="react, nextjs…"
                 className="mt-1 w-full rounded-lg border border-surface-700 bg-surface-900 px-3 py-2 text-sm text-surface-100"
               />
+            </div>
+
+            <div>
+              <label className="text-xs text-teal-100/65">Skills obligatorias</label>
+              <input
+                value={requiredSkills}
+                onChange={(e) => setRequiredSkills(e.target.value)}
+                placeholder="React, WordPress, Node.js"
+                className="mt-1 w-full rounded-lg border border-teal-800/70 bg-[#0b2528] px-3 py-2 text-sm text-surface-100 placeholder:text-teal-100/30"
+              />
+              <p className="mt-1 text-[10px] text-teal-100/40">El proyecto debe contener todas.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
@@ -238,13 +303,42 @@ export default function RadarPage() {
               Solo escrow
             </label>
 
-            <div className="rounded-xl border border-surface-700 bg-surface-900/60 p-3 space-y-2.5">
-              <div className="text-xs font-semibold uppercase tracking-wide text-gold-500/90">
-                Filtros de calidad
+            <div className="rounded-xl border border-teal-700/60 bg-[#0b2528] p-3 space-y-2.5 shadow-lg shadow-teal-950/20">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-semibold uppercase tracking-wide text-gold-400">
+                  Calidad del lead
+                </div>
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="text-[10px] text-teal-200/60 hover:text-gold-300"
+                >
+                  Limpiar
+                </button>
               </div>
-              <p className="text-[11px] text-surface-500 leading-snug">
-                Activá solo los que quieras. Por defecto ninguno (más resultados).
+              <p className="text-[11px] text-teal-100/55 leading-snug">
+                Elegí un perfil de búsqueda o afiná cada condición.
               </p>
+              <div className="grid grid-cols-3 gap-1 rounded-lg bg-[#061619] p-1">
+                {([
+                  ['balanced', 'Equilibrado'],
+                  ['verified', 'Verificados'],
+                  ['fast', 'Rápidos'],
+                ] as const).map(([preset, label]) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => applyPreset(preset)}
+                    className={`rounded-md px-1 py-1.5 text-[10px] font-medium ${
+                      filterPreset === preset
+                        ? 'bg-gold-500 text-surface-950'
+                        : 'text-teal-100/60 hover:bg-teal-900/60 hover:text-teal-100'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
 
               <label className="flex items-start gap-2 text-sm text-surface-300 cursor-pointer">
                 <input
@@ -255,7 +349,7 @@ export default function RadarPage() {
                 />
                 <span>
                   Payment verified
-                  <span className="block text-[11px] text-surface-500">Cliente con pago verificado</span>
+                  <span className="block text-[11px] text-teal-100/50">Solo datos confirmados por Freelancer</span>
                 </span>
               </label>
 
@@ -422,6 +516,7 @@ function ProjectCard({ project, scanId, application }: { project: FreelancerProj
   const tier = classifyTier(project as any);
   const style = TIER_STYLE[tier];
   const ageH = hoursSince((project as any).timeSubmitted || project.scannedAt);
+  const payment = paymentState(project);
   const hasClientMessage = (application?._count?.messages ?? 0) > 0 && application?.messages?.[0]?.sender === 'client';
   const isWon = application?.status === 'ADJUDICADO_A_MIME';
   const isViewed = hasClientMessage || ['EN_CONVERSACION', 'ADJUDICADO_A_MIME', 'ADJUDICADO_A_OTRO'].includes(application?.status);
@@ -507,6 +602,15 @@ function ProjectCard({ project, scanId, application }: { project: FreelancerProj
                 {isWon ? 'Ganado · sellado' : hasClientMessage ? 'Contacto' : isViewed ? 'Visto' : 'Postulado'}
               </span>
             )}
+            <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+              payment === 'verified'
+                ? 'bg-emerald-400/20 text-emerald-300'
+                : payment === 'unverified'
+                  ? 'bg-red-400/15 text-red-300'
+                  : 'bg-surface-700 text-surface-400'
+            }`}>
+              {payment === 'verified' ? '✓ Pago verificado' : payment === 'unverified' ? 'Pago no verificado' : 'Pago sin dato'}
+            </span>
           </div>
           <a
             href={`https://www.freelancer.com/projects/${project.seoUrl}`}

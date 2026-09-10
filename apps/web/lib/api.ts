@@ -6,6 +6,7 @@
 import type { ApiError } from '@fstail/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+let refreshPromise: Promise<boolean> | null = null;
 
 export class ApiClientError extends Error {
   constructor(
@@ -23,7 +24,7 @@ type RequestOptions = Omit<RequestInit, 'body'> & {
   skipRefresh?: boolean; // internal — prevents infinite refresh loop
 };
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { body, skipRefresh, ...fetchOptions } = options;
 
   const res = await fetch(`${API_URL}/api${path}`, {
@@ -64,6 +65,9 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 }
 
 async function tryRefresh(): Promise<boolean> {
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
   try {
     const res = await fetch(`${API_URL}/api/auth/refresh`, {
       method: 'POST',
@@ -72,7 +76,12 @@ async function tryRefresh(): Promise<boolean> {
     return res.ok;
   } catch {
     return false;
+  } finally {
+    refreshPromise = null;
   }
+  })();
+
+  return refreshPromise;
 }
 
 // ── Auth endpoints ────────────────────────────────────────────────────

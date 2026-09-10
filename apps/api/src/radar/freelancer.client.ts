@@ -97,10 +97,20 @@ export class FreelancerClient {
       const reputation = owner['employer_reputation']?.['entire'] ?? owner['reputation'] ?? {};
       const status = owner['status'] ?? {};
 
-      const paymentVerified =
-        Boolean(status['payment_verified']) ||
-        Boolean(owner['payment_verified']) ||
-        Boolean(owner['escrowcom_interaction_status'] === 'verified');
+      const paymentSignals = [
+        status['payment_verified'],
+        owner['payment_verified'],
+        owner['escrowcom_interaction_status'] === 'verified' ? true : undefined,
+      ];
+      const paymentVerified = paymentSignals.some((value) =>
+        value === true || value === 'true' || value === 1,
+      )
+        ? true
+        : paymentSignals.some((value) =>
+            value === false || value === 'false' || value === 0,
+          )
+          ? false
+          : undefined;
 
       const hireRate = Number(reputation['hire_rate'] ?? reputation['hireRate'] ?? 0);
       const reviewsCount = Number(reputation['reviews'] ?? reputation['review_count'] ?? 0);

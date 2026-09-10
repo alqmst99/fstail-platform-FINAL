@@ -8,6 +8,8 @@ export class AwardMonitorService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AwardMonitorService.name);
   private timer: NodeJS.Timeout | null = null;
   private readonly INTERVAL_MS = 5 * 60 * 1000;
+  private readonly FAILED_PROJECT_COOLDOWN_MS = 30 * 60 * 1000;
+  private readonly failedProjects = new Map<string, number>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -45,10 +47,19 @@ export class AwardMonitorService implements OnModuleInit, OnModuleDestroy {
 
     let updated = 0;
     for (const app of open) {
+      const retryAfter = this.failedProjects.get(app.freelancerProjId);
+      if (retryAfter && retryAfter > Date.now()) continue;
+      if (retryAfter) this.failedProjects.delete(app.freelancerProjId);
+
       try {
         const changed = await this.checkOne(app.freelancerProjId, app.id);
+        this.failedProjects.delete(app.freelancerProjId);
         if (changed) updated++;
       } catch (err: any) {
+        this.failedProjects.set(
+          app.freelancerProjId,
+          Date.now() + this.FAILED_PROJECT_COOLDOWN_MS,
+        );
         this.logger.debug(`Skip project ${app.freelancerProjId}: ${err.message}`);
       }
       await new Promise((r) => setTimeout(r, 400));

@@ -1,5 +1,5 @@
 // apps/web/lib/audit-api.ts
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import { request as apiRequest } from './api';
 
 export type AuditStatus = 'DRAFT' | 'IN_PROGRESS' | 'DONE' | 'ARCHIVED';
 export type Grade = 'A' | 'B' | 'C' | 'D' | 'F';
@@ -70,17 +70,11 @@ export interface AuditStats {
 }
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API}/api${path}`, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    ...init,
+  return apiRequest<T>(path, {
+    method: init?.method,
+    headers: init?.headers,
+    body: init?.body,
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).message ?? res.statusText);
-  }
-  if (res.status === 204) return undefined as T;
-  return res.json();
 }
 
 function qs(params: Record<string, unknown>) {

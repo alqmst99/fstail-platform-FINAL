@@ -45,7 +45,7 @@ export function evaluateProject(
   const maxBids = options.maxBidCount ?? 15;
 
   if (options.requirePaymentVerified) {
-    if (!project.paymentVerified) {
+    if (project.paymentVerified !== true) {
       qualified = false;
       reasons.push('Cliente sin payment_verified');
     }
