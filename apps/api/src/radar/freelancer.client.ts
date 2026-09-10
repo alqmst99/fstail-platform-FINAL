@@ -76,6 +76,7 @@ export class FreelancerClient {
 
     const params = new URLSearchParams({
       limit: String(dto.limit ?? 80),
+      full_description: 'true',
       job_details: 'true',
       user_details: 'true',
       ...(dto.keyword && { query: dto.keyword }),
@@ -90,11 +91,15 @@ export class FreelancerClient {
 
       if (!p['id'] || !p['title']) return null;
 
-      const owner = p['owner_details'] ?? p['owner'] ?? {};
+      const owner = p['owner_info'] ?? p['owner_details'] ?? p['owner'] ?? {};
       const budget = p['budget'] ?? {};
       const currency = p['currency'] ?? {};
       const bidStats = p['bid_stats'] ?? {};
-      const reputation = owner['employer_reputation']?.['entire'] ?? owner['reputation'] ?? {};
+      const reputation =
+        owner['employer_reputation']?.['entire'] ??
+        owner['reputation']?.['entire_history'] ??
+        owner['reputation'] ??
+        {};
       const status = owner['status'] ?? {};
 
       const readBoolean = (...values: unknown[]): boolean | undefined => {
@@ -137,16 +142,21 @@ export class FreelancerClient {
       const bidCount = Number(bidStats['bid_count'] ?? 0);
       const budgetMax = Number(budget['maximum'] ?? budget['minimum'] ?? 0);
       const clientScore = Number(p['score'] ?? owner['score'] ?? 0) || undefined;
+      const clientReputation = Number(
+        reputation['overall'] ?? reputation['positive'] ?? 0,
+      ) || undefined;
+      const clientStatus = owner['status'] ?? {};
       const isEscrowProject = readBoolean(p['is_escrow_project']);
       const escrowSupportedCurrency = readBoolean(currency['is_escrowcom_supported']);
       const minimumBid = Number(p['minimum_bid'] ?? 0) || undefined;
       const maximumBid = Number(p['maximum_bid'] ?? 0) || undefined;
       const defaultBid = Number(p['default_bid']?.['amount'] ?? 0) || undefined;
 
-      const location = owner['location'] ?? {};
+      const location = owner['location'] ?? owner['country'] ?? {};
       const country =
         location['country']?.['name'] ??
         location['country_name'] ??
+        location['name'] ??
         owner['country'] ??
         undefined;
 
@@ -184,7 +194,7 @@ export class FreelancerClient {
         id: Number(p['id']),
         title: String(p['title'] ?? '').trim(),
         seoUrl: String(p['seo_url'] ?? ''),
-        description: String(p['description'] ?? ''),
+        description: String(p['description'] ?? p['preview_description'] ?? ''),
         budget: {
           minimum: Number(budget['minimum'] ?? 0),
           maximum: Number(budget['maximum'] ?? 0),
@@ -201,6 +211,11 @@ export class FreelancerClient {
           ? 'freelancer.flPaymentVerified'
           : paymentVerified !== undefined ? 'freelancer.payment_verified' : undefined,
         clientScore,
+        clientReputation,
+        clientDepositMade: readBoolean(clientStatus['deposit_made']),
+        clientIdentityVerified: readBoolean(clientStatus['identity_verified']),
+        clientEmailVerified: readBoolean(clientStatus['email_verified']),
+        clientProfileComplete: readBoolean(clientStatus['profile_complete']),
         isEscrowProject,
         escrowSupportedCurrency,
         minimumBid,
@@ -213,8 +228,13 @@ export class FreelancerClient {
         owner: {
           id: Number(owner['id'] ?? 0),
           username: String(owner['username'] ?? ''),
-          escrowComSupported: Boolean(owner['escrowcom_interaction_status'] === 'verified'),
-          hasLinkedEscrowAccount: Boolean(owner['has_linked_escrow_account']),
+          escrowComSupported: Boolean(
+            owner['escrowcom_interaction_status'] === 'verified' ||
+            owner['escrowcom_account_linked'] === true,
+          ),
+          hasLinkedEscrowAccount: Boolean(
+            owner['has_linked_escrow_account'] || owner['escrowcom_account_linked'],
+          ),
           paymentVerified,
         },
         scannedAt: new Date().toISOString(),

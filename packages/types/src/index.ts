@@ -101,6 +101,11 @@ export interface FreelancerProjectExtended extends FreelancerProject {
   flPaymentVerified?: boolean;
   paymentVerificationSource?: string;
   clientScore?: number;
+  clientReputation?: number;
+  clientDepositMade?: boolean;
+  clientIdentityVerified?: boolean;
+  clientEmailVerified?: boolean;
+  clientProfileComplete?: boolean;
   bidScore?: number;
   isEscrowProject?: boolean;
   escrowSupportedCurrency?: boolean;
