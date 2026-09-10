@@ -37,6 +37,9 @@ export interface FreelancerProject {
   clientIdentityVerified?: boolean;
   clientEmailVerified?: boolean;
   clientProfileComplete?: boolean;
+  clientProjectsPosted?: number;
+  clientProjectsCompleted?: number;
+  clientFreelancersContacted?: number;
   bidScore?: number;
   isEscrowProject?: boolean;
   escrowSupportedCurrency?: boolean;

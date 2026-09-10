@@ -2,6 +2,48 @@
 
 import type { FreelancerProjectExtended, RadarFilterResult } from '@fstail/types';
 
+export interface FreelancerUserRecord {
+  id?: number;
+  status?: Record<string, unknown>;
+  employer_stats?: Record<string, unknown>;
+  location?: { city?: string; country?: { name?: string } };
+  registration_date?: number;
+}
+
+const MAX_CONTACTED_WITHOUT_COMPLETION = 10;
+
+function booleanValue(value: unknown): boolean | undefined {
+  if (value === true || value === 1 || value === '1' || value === 'true') return true;
+  if (value === false || value === 0 || value === '0' || value === 'false') return false;
+  return undefined;
+}
+
+export function shouldRejectFreelancerUser(user: FreelancerUserRecord | undefined): boolean {
+  if (!user) return false;
+
+  const status = user.status ?? {};
+  const stats = user.employer_stats ?? {};
+  const paymentVerified = booleanValue(status['payment_verified']);
+  const completed = Number(stats['projects_completed'] ?? 0);
+  const contacted = Number(stats['freelancers_contacted'] ?? 0);
+
+  return paymentVerified === false ||
+    (contacted > MAX_CONTACTED_WITHOUT_COMPLETION && completed === 0);
+}
+
+export function filterBidPayload(
+  payload: { result?: { bids?: unknown[]; users?: Record<string, FreelancerUserRecord> } },
+): unknown[] {
+  const bids = payload.result?.bids ?? [];
+  const users = payload.result?.users ?? {};
+
+  return bids.filter((rawBid) => {
+    const bid = rawBid as { bidder_id?: number | string };
+    const user = bid.bidder_id === undefined ? undefined : users[String(bid.bidder_id)];
+    return !shouldRejectFreelancerUser(user);
+  });
+}
+
 export interface QualityFilterOptions {
   requirePaymentVerified?: boolean;
   requireHireRate60?: boolean;

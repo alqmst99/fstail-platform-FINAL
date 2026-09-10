@@ -8,7 +8,7 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import type { ScanDto } from './dto/radar.dto';
 import type { FreelancerProject, FreelancerProjectExtended } from '@fstail/types';
-import { evaluateProject } from './radarFilter';
+import { evaluateProject, shouldRejectFreelancerUser } from './radarFilter';
 
 const ALLOWED_FREELANCER_DOMAINS = [
   'https://www.freelancer.com',
@@ -79,6 +79,12 @@ export class FreelancerClient {
       full_description: 'true',
       job_details: 'true',
       user_details: 'true',
+      owner_info: 'true',
+      attachment_details: 'true',
+      location_details: 'true',
+      upgrade_details: 'true',
+      client_engagement_details: 'true',
+      qualification_details: 'true',
       ...(dto.keyword && { query: dto.keyword }),
     });
 
@@ -146,11 +152,21 @@ export class FreelancerClient {
         reputation['overall'] ?? reputation['positive'] ?? 0,
       ) || undefined;
       const clientStatus = owner['status'] ?? {};
+      const employerStats = owner['employer_stats'] ?? {};
       const isEscrowProject = readBoolean(p['is_escrow_project']);
       const escrowSupportedCurrency = readBoolean(currency['is_escrowcom_supported']);
       const minimumBid = Number(p['minimum_bid'] ?? 0) || undefined;
       const maximumBid = Number(p['maximum_bid'] ?? 0) || undefined;
       const defaultBid = Number(p['default_bid']?.['amount'] ?? 0) || undefined;
+      const clientProjectsPosted = Number.isFinite(Number(employerStats['projects_posted']))
+        ? Number(employerStats['projects_posted'])
+        : undefined;
+      const clientProjectsCompleted = Number.isFinite(Number(employerStats['projects_completed']))
+        ? Number(employerStats['projects_completed'])
+        : undefined;
+      const clientFreelancersContacted = Number.isFinite(Number(employerStats['freelancers_contacted']))
+        ? Number(employerStats['freelancers_contacted'])
+        : undefined;
 
       const location = owner['location'] ?? owner['country'] ?? {};
       const country =
@@ -216,6 +232,9 @@ export class FreelancerClient {
         clientIdentityVerified: readBoolean(clientStatus['identity_verified']),
         clientEmailVerified: readBoolean(clientStatus['email_verified']),
         clientProfileComplete: readBoolean(clientStatus['profile_complete']),
+        clientProjectsPosted,
+        clientProjectsCompleted,
+        clientFreelancersContacted,
         isEscrowProject,
         escrowSupportedCurrency,
         minimumBid,
@@ -258,6 +277,17 @@ export class FreelancerClient {
    * Filtros legacy (budget, skills, escrow) + filtro estricto de calidad del prompt.
    */
   private passesFilters(project: FreelancerProjectExtended, dto: ScanDto): boolean {
+    const owner = {
+      status: {
+        payment_verified: project.paymentVerified,
+      },
+      employer_stats: {
+        projects_completed: project.clientProjectsCompleted,
+        freelancers_contacted: project.clientFreelancersContacted,
+      },
+    };
+    if (shouldRejectFreelancerUser(owner)) return false;
+
     // Legacy filters
     if (dto.escrowOnly && !project.owner.escrowComSupported) return false;
     if (dto.minBudget && project.budget.maximum < dto.minBudget) return false;
