@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, FormEvent } from 'react';
+import { useEffect, useMemo, useState, FormEvent } from 'react';
 import {
   radarApi,
   formatBudget,
@@ -115,6 +115,19 @@ export default function RadarPage() {
   const [requireMaxBids, setRequireMaxBids] = useState(false);
   const [minDescriptionLength, setMinDescriptionLength] = useState(120);
   const [maxBidCount, setMaxBidCount] = useState(15);
+  const [applicationByProject, setApplicationByProject] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    applicationsApi.list({ page: 1, pageSize: 100 })
+      .then((result) => {
+        const mapped: Record<string, any> = {};
+        for (const application of result.data ?? []) {
+          mapped[String(application.freelancerProjId)] = application;
+        }
+        setApplicationByProject(mapped);
+      })
+      .catch(() => setApplicationByProject({}));
+  }, []);
 
   const sortedProjects = useMemo(
     () => sortProjects(scanResult?.projects ?? []),
@@ -333,6 +346,7 @@ export default function RadarPage() {
             <ProjectGrid
               projects={sortedProjects}
               scanId={scanResult?.scanId}
+              applicationByProject={applicationByProject}
               empty={!scanning && !scanResult}
               scanning={scanning}
             />
@@ -351,11 +365,13 @@ export default function RadarPage() {
 function ProjectGrid({
   projects,
   scanId,
+  applicationByProject,
   empty,
   scanning,
 }: {
   projects: FreelancerProject[];
   scanId?: string;
+  applicationByProject: Record<string, any>;
   empty: boolean;
   scanning: boolean;
 }) {
@@ -384,13 +400,13 @@ function ProjectGrid({
   return (
     <div className="grid gap-3 p-5 grid-cols-1 xl:grid-cols-2">
       {projects.map((project) => (
-        <ProjectCard key={project.id} project={project} scanId={scanId} />
+        <ProjectCard key={project.id} project={project} scanId={scanId} application={applicationByProject[String(project.id)]} />
       ))}
     </div>
   );
 }
 
-function ProjectCard({ project, scanId }: { project: FreelancerProject; scanId?: string }) {
+function ProjectCard({ project, scanId, application }: { project: FreelancerProject; scanId?: string; application?: any }) {
   const [expanded, setExpanded] = useState(false);
   const [framework, setFramework] = useState<Framework>('AIDA');
   const [generating, setGenerating] = useState(false);
@@ -406,6 +422,9 @@ function ProjectCard({ project, scanId }: { project: FreelancerProject; scanId?:
   const tier = classifyTier(project as any);
   const style = TIER_STYLE[tier];
   const ageH = hoursSince((project as any).timeSubmitted || project.scannedAt);
+  const hasClientMessage = (application?._count?.messages ?? 0) > 0 && application?.messages?.[0]?.sender === 'client';
+  const isWon = application?.status === 'ADJUDICADO_A_MIME';
+  const isViewed = hasClientMessage || ['EN_CONVERSACION', 'ADJUDICADO_A_MIME', 'ADJUDICADO_A_OTRO'].includes(application?.status);
 
   async function handleGenerate() {
     setGenerating(true);
@@ -483,6 +502,11 @@ function ProjectCard({ project, scanId }: { project: FreelancerProject; scanId?:
             <span className="text-[10px] text-surface-500">
               {ageH < 1 ? `${Math.round(ageH * 60)}m` : `${Math.round(ageH)}h`} · {project.bidCount} bids
             </span>
+            {application && (
+              <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${isWon ? 'bg-cyan-400/20 text-cyan-300' : hasClientMessage ? 'bg-amber-400/20 text-amber-300' : isViewed ? 'bg-emerald-400/20 text-emerald-300' : 'bg-surface-700 text-surface-400'}`}>
+                {isWon ? 'Ganado · sellado' : hasClientMessage ? 'Contacto' : isViewed ? 'Visto' : 'Postulado'}
+              </span>
+            )}
           </div>
           <a
             href={`https://www.freelancer.com/projects/${project.seoUrl}`}

@@ -13,6 +13,23 @@
   }
 
   body {
-    @apply bg-surface-900 text-surface-50;
+    @apply bg-surface-950 text-surface-50;
+    background-image:
+      radial-gradient(circle at 12% 8%, rgba(20, 184, 166, 0.11), transparent 28rem),
+      radial-gradient(circle at 88% 14%, rgba(245, 158, 11, 0.09), transparent 24rem),
+      linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(10, 28, 35, 0.98));
+    background-attachment: fixed;
+    background-size: auto, auto, cover;
+  }
+
+  a, button, input, select, textarea {
+    transition-property: color, background-color, border-color, opacity, transform, box-shadow;
+    transition-duration: 180ms;
+    transition-timing-function: ease-out;
+  }
+
+  ::selection {
+    background: rgba(20, 184, 166, 0.35);
+    color: #f8fafc;
   }
 }

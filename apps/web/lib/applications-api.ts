@@ -31,12 +31,14 @@ export const applicationsApi = {
   },
   freelancerHistory: (refresh = true) =>
     request<any>(`/applications/freelancer-history?refresh=${refresh ? 'true' : 'false'}`),
-  list: (q?: { status?: string; assignedTo?: string }) => {
+  list: (q?: { status?: string; assignedTo?: string; page?: number; pageSize?: number }) => {
     const params = new URLSearchParams();
     if (q?.status) params.set('status', q.status);
     if (q?.assignedTo) params.set('assignedTo', q.assignedTo);
+    if (q?.page) params.set('page', String(q.page));
+    if (q?.pageSize) params.set('pageSize', String(q.pageSize));
     const qs = params.toString();
-    return request<{ data: any[]; total: number }>(`/applications${qs ? `?${qs}` : ''}`);
+    return request<{ data: any[]; total: number; page: number; pageSize: number; totalPages: number }>(`/applications${qs ? `?${qs}` : ''}`);
   },
   get: (id: string) => request<any>(`/applications/${id}`),
   create: (body: Record<string, unknown>) =>

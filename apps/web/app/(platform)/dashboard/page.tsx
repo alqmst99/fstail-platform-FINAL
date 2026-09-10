@@ -210,7 +210,12 @@ export default function DashboardPage() {
         conversionRate: 'N/A',
         date: selectedDay,
       }));
-      const prompt = `Eres mi coach operativo de freelancing. Generá mi rutina diaria optimizada con este contexto:
+      const prompt = `Eres mi coach operativo de freelancing. Generá una rutina semanal para el operador con tag ${userTag}. Distribuí tareas de lunes a domingo respetando energía, pendientes y conversaciones activas.
+
+    Devolvé SOLO JSON válido con este formato:
+    {"days":{"YYYY-MM-DD":[{"title":"...","category":"POSTULACION|ESTUDIO|DESARROLLO|SALUD_MENTAL","timeSpentMin":30}]}}
+
+    Contexto del operador:
 
 ${JSON.stringify(ctx, null, 2)}
 
@@ -220,7 +225,7 @@ Prioridades:
 3) Estudio si energía media
 4) Descanso real si energy ≤ 2
 
-Respondé con bloques de horario concretos y una frase motivacional corta.`;
+No inventes proyectos ni clientes. Priorizá conversaciones, postulaciones de calidad y descanso si la energía es baja.`;
       await navigator.clipboard.writeText(prompt);
       alert('Prompt de rutina copiado. Pegalo en ChatGPT / Claude / Grok.');
     } catch {
@@ -347,7 +352,7 @@ Respondé con bloques de horario concretos y una frase motivacional corta.`;
   }
 
   const pending = tasks.filter((t) => !t.completed).length;
-  const byCat = (c: string) => tasks.filter((t) => t.category === c);
+  const byCat = (c: string) => tasks.filter((t) => t.category === c).sort((a, b) => Number(a.completed) - Number(b.completed));
   const todayISO = toISODate(new Date());
 
   // Heatmap del mes actual (calendario simple)
@@ -513,14 +518,14 @@ Respondé con bloques de horario concretos y una frase motivacional corta.`;
                 onChange={(e) => setReplaceToday(e.target.checked)}
                 className="rounded border-surface-600"
               />
-              Reemplazar tareas del día
+              Reemplazar tareas de la semana importada
             </label>
           </div>
           <textarea
             value={routineText}
             onChange={(e) => setRoutineText(e.target.value)}
             rows={6}
-            placeholder={`[{"title":"Responder 3 mensajes","category":"POSTULACION"}]\n\no lista con viñetas`}
+            placeholder={`{"days":{"2026-09-08":[{"title":"Responder 3 mensajes","category":"POSTULACION","timeSpentMin":30}],"2026-09-09":[{"title":"Estudiar React","category":"ESTUDIO","timeSpentMin":45}]}}`}
             className="w-full rounded-lg border border-surface-700 bg-surface-950 px-3 py-2 text-sm text-surface-200 font-mono"
           />
           <div className="flex gap-2">
@@ -530,7 +535,7 @@ Respondé con bloques de horario concretos y una frase motivacional corta.`;
               disabled={importing || !routineText.trim()}
               className="rounded-lg bg-gold-600 hover:bg-gold-500 disabled:opacity-40 text-surface-950 text-sm font-semibold px-4 py-2"
             >
-              {importing ? 'Importando…' : `Importar a ${selectedDay}`}
+              {importing ? 'Importando…' : (tryParseDays(routineText) ? 'Importar semana completa' : `Importar a ${selectedDay}`)}
             </button>
             <button
               type="button"
@@ -617,7 +622,7 @@ Respondé con bloques de horario concretos y una frase motivacional corta.`;
                       {list.map((t) => (
                         <label
                           key={t.id}
-                          className="flex items-center gap-3 rounded-lg border border-surface-800 bg-surface-950/50 px-3 py-2 hover:border-surface-600 cursor-pointer"
+                          className={`flex items-center gap-3 rounded-lg border px-3 py-2 cursor-pointer transition-all duration-300 ${t.completed ? 'order-last border-emerald-500/60 bg-emerald-500/15' : 'border-surface-800 bg-surface-950/50 hover:border-surface-600'}`}
                         >
                           <input
                             type="checkbox"

@@ -48,6 +48,20 @@ export default function ApplicationsAnalyticsPage() {
     });
   }, [bids, outcomeFilter, q]);
 
+  const trend = useMemo(() => {
+    const byDay = new Map<string, { total: number; won: number; lost: number; viewed: number }>();
+    for (const bid of bids) {
+      const key = bid.submittedAt ? new Date(bid.submittedAt).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : 'Sin fecha';
+      const row = byDay.get(key) ?? { total: 0, won: 0, lost: 0, viewed: 0 };
+      row.total += 1;
+      if (bid.outcome === 'WON') row.won += 1;
+      if (bid.outcome === 'LOST') row.lost += 1;
+      if (bid.clientViewed) row.viewed += 1;
+      byDay.set(key, row);
+    }
+    return Array.from(byDay.entries()).slice(-14).map(([label, values]) => ({ label, ...values }));
+  }, [bids]);
+
   if (loading) {
     return (
       <div className="p-6 text-surface-400 text-sm">
@@ -107,6 +121,11 @@ export default function ApplicationsAnalyticsPage() {
               }
               accent="text-blue-300"
             />
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-4">
+            <TrendChart title="Tendencia de postulaciones" rows={trend} />
+            <OutcomeChart data={data} />
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -248,7 +267,7 @@ export default function ApplicationsAnalyticsPage() {
                         )}
                         {b.bidCount != null && <span>{b.bidCount} bids en el proyecto</span>}
                         {b.clientViewed && (
-                          <span className="text-blue-300">👁 visto</span>
+                          <span className="text-emerald-300">Visto</span>
                         )}
                         {b.profileViewed && (
                           <span className="text-blue-300">👤 perfil</span>
@@ -296,7 +315,7 @@ function OutcomeBadge({ outcome }: { outcome: Outcome }) {
     UNKNOWN: 'bg-surface-700 text-surface-500',
   };
   const label: Record<Outcome, string> = {
-    WON: 'Ganada',
+    WON: 'Ganada · Sellada',
     LOST: 'Perdida',
     PENDING: 'Pendiente',
     RETRACTED: 'Retirada',
@@ -306,5 +325,55 @@ function OutcomeBadge({ outcome }: { outcome: Outcome }) {
     <span className={`shrink-0 text-xs px-2.5 py-1 rounded-full ${map[outcome] || map.UNKNOWN}`}>
       {label[outcome] || outcome}
     </span>
+  );
+}
+
+function TrendChart({ title, rows }: { title: string; rows: Array<{ label: string; total: number; won: number; lost: number; viewed: number }> }) {
+  const max = Math.max(...rows.map((row) => row.total), 1);
+  return (
+    <div className="rounded-2xl border border-surface-700 bg-surface-900/90 p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-semibold text-surface-200">{title}</h2>
+        <span className="text-[10px] text-surface-500">últimos 14 días con datos</span>
+      </div>
+      {rows.length === 0 ? <p className="text-sm text-surface-500">No hay fechas para graficar.</p> : (
+        <div className="flex h-40 items-end gap-2 overflow-x-auto">
+          {rows.map((row) => (
+            <div key={row.label} className="flex min-w-[32px] flex-1 flex-col items-center justify-end gap-1">
+              <span className="text-[10px] text-surface-400">{row.total}</span>
+              <div className="relative flex h-28 w-full max-w-8 items-end rounded-t bg-surface-800">
+                <div className="w-full rounded-t bg-emerald-400 transition-all duration-500" style={{ height: `${(row.total / max) * 100}%` }} title={`${row.total} postulaciones`} />
+                {row.viewed > 0 && <div className="absolute bottom-0 w-full rounded-t bg-amber-400/80 transition-all duration-500" style={{ height: `${(row.viewed / max) * 100}%` }} title={`${row.viewed} vistas`} />}
+              </div>
+              <span className="text-[9px] text-surface-500">{row.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="mt-3 flex gap-3 text-[10px] text-surface-500"><span className="text-emerald-300">Total</span><span className="text-amber-300">Vistas</span></div>
+    </div>
+  );
+}
+
+function OutcomeChart({ data }: { data: any }) {
+  const rows = [
+    ['Ganadas · selladas', data?.awarded ?? 0, 'bg-cyan-400'],
+    ['Vistas', data?.viewed ?? 0, 'bg-emerald-400'],
+    ['Perdidas', data?.lost ?? 0, 'bg-red-400'],
+    ['Pendientes', data?.pending ?? 0, 'bg-amber-400'],
+  ] as const;
+  const max = Math.max(...rows.map(([, value]) => Number(value)), 1);
+  return (
+    <div className="rounded-2xl border border-surface-700 bg-surface-900/90 p-5">
+      <h2 className="text-sm font-semibold text-surface-200 mb-4">Distribución de resultados</h2>
+      <div className="space-y-4">
+        {rows.map(([label, value, color]) => (
+          <div key={label}>
+            <div className="mb-1 flex justify-between text-xs"><span className="text-surface-400">{label}</span><span className="text-surface-200">{value}</span></div>
+            <div className="h-2 rounded-full bg-surface-800"><div className={`h-2 rounded-full ${color} transition-all duration-700`} style={{ width: `${(Number(value) / max) * 100}%` }} /></div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

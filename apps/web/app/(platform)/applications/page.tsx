@@ -29,11 +29,13 @@ export default function ApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const load = useCallback(() => {
     setLoading(true);
     applicationsApi
-      .list(filter ? { status: filter } : undefined)
+      .list({ ...(filter ? { status: filter } : {}), page, pageSize: 25 })
       .then((d) => {
         let rows = d.data || [];
         if (sourceFilter) {
@@ -43,14 +45,17 @@ export default function ApplicationsPage() {
         });
         }
         setApps(rows);
+        setTotalPages(d.totalPages || 1);
       })
       .catch(() => setApps([]))
       .finally(() => setLoading(false));
-  }, [filter, sourceFilter]);
+  }, [filter, sourceFilter, page]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => setPage(1), [filter, sourceFilter]);
 
   async function handleSync() {
     setSyncing(true);
@@ -74,7 +79,7 @@ export default function ApplicationsPage() {
         <div>
           <h1 className="text-2xl font-bold text-surface-50">Postulaciones</h1>
           <p className="text-sm text-surface-400 mt-1">
-            Radar (verde) + Freelancer API (celeste) · estados reales
+            Todas las postulaciones · visto, contacto, ganado/sellado y perdido
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -123,12 +128,9 @@ export default function ApplicationsPage() {
       )}
 
       <div className="flex gap-3 text-[11px] text-surface-500">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Radar
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" /> Freelancer (API)
-        </span>
+        <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Visto</span>
+        <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-400" /> Contacto</span>
+        <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-cyan-400" /> Ganado / sellado</span>
       </div>
 
       {loading ? (
@@ -155,15 +157,23 @@ export default function ApplicationsPage() {
           {apps.map((app) => {
             const src = app.source || (app.assignedToUserTag === 'FREELANCER' ? 'FREELANCER' : 'RADAR');
             const isFl = src === 'FREELANCER';
+            const hasClientMessage = (app._count?.messages ?? 0) > 0 && app.messages?.[0]?.sender === 'client';
+            const isWon = app.status === 'ADJUDICADO_A_MIME';
+            const isViewed = hasClientMessage || ['EN_CONVERSACION', 'ADJUDICADO_A_MIME', 'ADJUDICADO_A_OTRO'].includes(app.status);
+            const cardTone = isWon
+              ? 'border-cyan-400/70 bg-cyan-950/20 hover:border-cyan-300'
+              : hasClientMessage
+                ? 'border-amber-400/70 bg-amber-950/20 hover:border-amber-300'
+                : isViewed
+                  ? 'border-emerald-500/60 bg-emerald-950/15 hover:border-emerald-400'
+                  : isFl
+                    ? 'border-cyan-500/40 hover:border-cyan-400/70'
+                    : 'border-surface-700 hover:border-surface-500';
             return (
               <Link
                 key={app.id}
                 href={`/applications/${app.id}`}
-                className={`block rounded-xl border bg-surface-900 p-4 transition ${
-                  isFl
-                    ? 'border-cyan-500/40 hover:border-cyan-400/70'
-                    : 'border-emerald-500/30 hover:border-emerald-400/60'
-                }`}
+                className={`block rounded-xl border p-4 transition-all duration-300 hover:-translate-y-0.5 ${cardTone}`}
               >
                 <div className="flex justify-between gap-3 items-start">
                   <div>
@@ -189,18 +199,27 @@ export default function ApplicationsPage() {
                       STATUS_COLORS[app.status] || ''
                     }`}
                   >
-                    {STATUS_LABELS[app.status] || app.status}
+                      {isWon ? 'Ganado · sellado' : hasClientMessage ? 'Contacto' : isViewed ? 'Visto' : (STATUS_LABELS[app.status] || app.status)}
                   </span>
                 </div>
                 {app.winnerBidPrice != null && (
-                  <p className="text-xs text-red-400 mt-2">
-                    Ganador: ${app.winnerBidPrice}
+                  <p className={`text-xs mt-2 ${isWon ? 'text-cyan-300' : 'text-red-400'}`}>
+                    {isWon ? 'Postulación ganada / sellada' : 'Ganador'}: ${app.winnerBidPrice}
                     {app.winnerRating != null ? ` · ★ ${app.winnerRating}` : ''}
                   </p>
                 )}
               </Link>
             );
           })}
+        </div>
+      )}
+      {!loading && apps.length > 0 && totalPages > 1 && (
+        <div className="flex items-center justify-between border-t border-surface-800 pt-4 text-xs text-surface-500">
+          <span>Página {page} de {totalPages}</span>
+          <div className="flex gap-2">
+            <button type="button" disabled={page === 1} onClick={() => setPage((p) => p - 1)} className="rounded border border-surface-700 px-3 py-1.5 disabled:opacity-30 hover:border-gold-500/60">Anterior</button>
+            <button type="button" disabled={page === totalPages} onClick={() => setPage((p) => p + 1)} className="rounded border border-surface-700 px-3 py-1.5 disabled:opacity-30 hover:border-gold-500/60">Siguiente</button>
+          </div>
         </div>
       )}
     </div>
