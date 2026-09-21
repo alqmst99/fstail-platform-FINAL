@@ -22,10 +22,11 @@ export class ApiClientError extends Error {
 type RequestOptions = Omit<RequestInit, 'body'> & {
   body?: unknown;
   skipRefresh?: boolean; // internal — prevents infinite refresh loop
+  redirectOnUnauthorized?: boolean;
 };
 
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { body, skipRefresh, ...fetchOptions } = options;
+  const { body, skipRefresh, redirectOnUnauthorized = true, ...fetchOptions } = options;
 
   const res = await fetch(`${API_URL}/api${path}`, {
     ...fetchOptions,
@@ -44,7 +45,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
       return request<T>(path, { ...options, skipRefresh: true });
     }
     // Refresh failed — redirect to login
-    if (typeof window !== 'undefined') {
+    if (redirectOnUnauthorized && typeof window !== 'undefined') {
       window.location.href = '/login';
     }
     throw new ApiClientError(401, 'Session expired');
@@ -90,6 +91,8 @@ export const authApi = {
   login: (email: string, password: string) =>
     request<{ message: string; user: AuthUser }>('/auth/login', {
       method: 'POST',
+      skipRefresh: true,
+      redirectOnUnauthorized: false,
       body: { email, password },
     }),
 
@@ -106,7 +109,7 @@ export const authApi = {
     request<{ message: string }>('/auth/logout-all', { method: 'POST' }),
 
   me: () =>
-    request<AuthUser>('/auth/me'),
+    request<AuthUser>('/auth/me', { redirectOnUnauthorized: false }),
 
   verifyEmail: (token: string) =>
     request<{ message: string }>('/auth/verify-email', {
