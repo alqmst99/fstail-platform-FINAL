@@ -306,7 +306,7 @@ export class FreelancerAuthClient {
    * Histórico de TUS bids — maxTotal default 120 (rápido).
    * GET /projects/0.1/bids/?bidders[]={userId}
    */
-  async fetchAllMyBids(maxTotal = 120): Promise<any[]> {
+  async fetchAllMyBids(maxTotal = 250): Promise<any[]> {
     const all: any[] = [];
     const limit = 60;
     const maxPages = Math.max(1, Math.ceil(maxTotal / limit));

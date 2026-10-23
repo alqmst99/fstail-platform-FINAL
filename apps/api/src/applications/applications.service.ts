@@ -375,7 +375,7 @@ export class ApplicationsService {
    * Importa bids de Freelancer → FreelancerBidSnapshot + Application (Prisma).
    * Tope 120 para velocidad. Mapea WON/LOST a estados CRM.
    */
-  async syncFreelancerBidsToApplications(workspaceId: string, maxTotal = 120) {
+  async syncFreelancerBidsToApplications(workspaceId: string, maxTotal = 250) {
     if (!this.freelancer.isConfigured()) {
       const status = (this.freelancer as any).configStatus?.() ?? {};
       throw new BadRequestException(
@@ -494,7 +494,7 @@ export class ApplicationsService {
     if (refresh && this.freelancer.isConfigured()) {
       // también materializa en Application para el listado unificado
       try {
-        await this.syncFreelancerBidsToApplications(workspaceId, 120);
+        await this.syncFreelancerBidsToApplications(workspaceId, 250);
       } catch (e: any) {
         this.logger.warn(`syncFreelancerBidsToApplications: ${e.message}`);
         const rawBids = await this.freelancer.fetchAllMyBids(120);
@@ -569,7 +569,7 @@ export class ApplicationsService {
           projectStatus: b.projectStatus || null,
           submittedAt: b.submittedAt ? new Date(b.submittedAt) : null,
           awardedAt: b.awardedAt ? new Date(b.awardedAt) : null,
-          meta: {},
+          meta: { viewedRaw: { clientViewed: !!b.clientViewed, profileViewed: !!b.profileViewed } },
           lastSyncedAt: now,
         },
         update: {
@@ -692,6 +692,48 @@ export class ApplicationsService {
     };
   }
 
+
+  /** Busca en el bid (recursivo) cualquier señal de "cliente vio la oferta/perfil". */
+  private deepFindViewFlags(obj: any, depth = 0): { clientViewed: boolean; profileViewed: boolean } {
+    let clientViewed = false;
+    let profileViewed = false;
+    if (!obj || typeof obj !== 'object' || depth > 4) return { clientViewed, profileViewed };
+    for (const [k, v] of Object.entries(obj)) {
+      const key = k.toLowerCase();
+      if (
+        key.includes('client_view') ||
+        key === 'viewed' ||
+        key === 'is_viewed' ||
+        key === 'time_viewed' ||
+        key === 'time_client_viewed' ||
+        key === 'viewed_by_client' ||
+        key === 'employer_viewed' ||
+        (key.includes('view') && key.includes('client')) ||
+        (key.includes('view') && !key.includes('profile') && !key.includes('count') && (v === true || (typeof v === 'number' && v > 0) || (typeof v === 'string' && v.length > 4)))
+      ) {
+        if (v === true || (typeof v === 'number' && v > 0) || (typeof v === 'string' && /\d{4}|true/i.test(v))) {
+          clientViewed = true;
+        }
+      }
+      if (
+        key.includes('profile_view') ||
+        key === 'profile_viewed' ||
+        key === 'profile_visited' ||
+        key === 'employer_viewed_profile'
+      ) {
+        if (v === true || (typeof v === 'number' && v > 0) || (typeof v === 'string' && v.length > 4)) {
+          profileViewed = true;
+        }
+      }
+      if (v && typeof v === 'object' && !Array.isArray(v)) {
+        const nested = this.deepFindViewFlags(v, depth + 1);
+        clientViewed = clientViewed || nested.clientViewed;
+        profileViewed = profileViewed || nested.profileViewed;
+      }
+    }
+    return { clientViewed, profileViewed };
+  }
+
   private normalizeFreelancerBid(b: any, myId: number) {
     const project = b.project || b.project_details || {};
     const rawAward = [
@@ -768,10 +810,10 @@ export class ApplicationsService {
     if (projectClosed && outcome === 'PENDING') outcome = 'LOST';
     if (outcome === 'UNKNOWN') outcome = 'PENDING';
 
-    // Freelancer no siempre expone un flag "client_viewed" estable.
-    // Combinamos campos directos + proxies (shortlist, award, mensajes, highlight).
+    const deep = this.deepFindViewFlags(b);
     const clientViewed = Boolean(
-      b.client_viewed_at ||
+      deep.clientViewed ||
+        b.client_viewed_at ||
         b.client_viewed ||
         b.viewed ||
         b.is_viewed ||
@@ -781,23 +823,16 @@ export class ApplicationsService {
         b.highlights?.viewed ||
         b.bid_insights?.viewed ||
         b.bid_insights?.client_viewed ||
-        b.paid_features?.highlight ||
         b.shortlisted ||
         b.is_shortlisted ||
         b.highlighted ||
-        // Si ya hubo award / rechazo, el cliente sí miró el bid
-        (outcome === 'WON' || outcome === 'LOST') ||
-        (awardJoined.includes('shortlist')) ||
-        (awardJoined.includes('hidden') === false &&
-          awardStatus &&
-          awardStatus !== 'pending' &&
-          awardStatus !== 'active' &&
-          outcome !== 'PENDING' &&
-          outcome !== 'RETRACTED' &&
-          outcome !== 'UNKNOWN'),
+        outcome === 'WON' ||
+        outcome === 'LOST' ||
+        awardJoined.includes('shortlist'),
     );
     const profileViewed = Boolean(
-      b.profile_viewed_at ||
+      deep.profileViewed ||
+        b.profile_viewed_at ||
         b.profile_viewed ||
         b.highlights?.profile_viewed ||
         b.bid_insights?.profile_viewed ||

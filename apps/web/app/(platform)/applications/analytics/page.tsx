@@ -266,8 +266,10 @@ export default function ApplicationsAnalyticsPage() {
                           <span>{new Date(b.submittedAt).toLocaleDateString()}</span>
                         )}
                         {b.bidCount != null && <span>{b.bidCount} bids en el proyecto</span>}
-                        {b.clientViewed && (
-                          <span className="text-emerald-300">Visto</span>
+                        {b.clientViewed ? (
+                          <span className="text-emerald-300 font-medium">👁 Visto</span>
+                        ) : (
+                          <span className="text-surface-600">👁 —</span>
                         )}
                         {b.profileViewed && (
                           <span className="text-blue-300">👤 perfil</span>

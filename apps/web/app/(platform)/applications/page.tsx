@@ -89,7 +89,7 @@ export default function ApplicationsPage() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="p-3 sm:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-surface-50">Postulaciones</h1>
@@ -221,13 +221,27 @@ export default function ApplicationsPage() {
                       {app.assignedToUserTag ? ` · ${app.assignedToUserTag}` : ''}
                     </p>
                   </div>
-                  <span
-                    className={`shrink-0 text-xs px-2.5 py-1 rounded-full ${
-                      STATUS_COLORS[app.status] || ''
-                    }`}
-                  >
-                      {isWon ? 'Ganado · sellado' : hasClientMessage ? 'Contacto' : isViewed ? 'Visto' : (STATUS_LABELS[app.status] || app.status)}
-                  </span>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <span
+                      className={`text-xs px-2.5 py-1 rounded-full ${
+                        STATUS_COLORS[app.status] || ''
+                      }`}
+                    >
+                      {isWon
+                        ? 'Ganado · sellado'
+                        : hasClientMessage
+                          ? 'Contacto'
+                          : isViewed
+                            ? 'Visto'
+                            : STATUS_LABELS[app.status] || app.status}
+                    </span>
+                    {(isViewed || app.clientViewed || app.profileViewed) && (
+                      <span className="flex items-center gap-1 text-[10px] text-emerald-400/90" title="Cliente vio la oferta">
+                        <span className={app.clientViewed || isViewed ? 'text-emerald-400' : 'text-surface-600'}>👁</span>
+                        {app.profileViewed ? <span className="text-blue-300">👤</span> : null}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {app.winnerBidPrice != null && (
                   <p className={`text-xs mt-2 ${isWon ? 'text-cyan-300' : 'text-red-400'}`}>

@@ -56,10 +56,10 @@ export class ApplicationsController {
     return this.awardMonitor.syncAll();
   }
 
-  /** Importa bids de Freelancer → Application + snapshots (máx 120) */
+  /** Importa bids de Freelancer → Application + snapshots (máx 250) */
   @Post('sync-freelancer')
   syncFreelancer(@Req() req: any) {
-    return this.service.syncFreelancerBidsToApplications(req.user.workspaceId, 120);
+    return this.service.syncFreelancerBidsToApplications(req.user.workspaceId, 250);
   }
 
   @Get(':id')
