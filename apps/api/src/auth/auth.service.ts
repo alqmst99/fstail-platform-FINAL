@@ -126,18 +126,19 @@ const existing = await this.usersService.findByEmail(dto.email);
   // ── Refresh rotation ───────────────────────────────────────────────
 
   async refresh(userId: string, email: string, role: Role, refreshTokenId: string): Promise<TokenPair> {
-await this.prisma.refreshToken.update({
-  where: {
-    id: refreshTokenId,
-  },
-  data: {
-    revokedAt: new Date(),
-  },
-});
-
-this.logger.debug(`Refresh token rotated for ${userId}`);
-
-return this.issueTokenPair(userId, email, role);
+    // Emitir el nuevo par PRIMERO; revocar el viejo con gracia de 60s
+    // para que requests concurrentes que aún traen el token anterior no fallen en cadena.
+    const tokens = await this.issueTokenPair(userId, email, role);
+    const graceUntil = new Date(Date.now() + 60_000);
+    await this.prisma.refreshToken.update({
+      where: { id: refreshTokenId },
+      data: {
+        // No revocar al instante: acortar expiry para que deje de valer en ~60s
+        expiresAt: graceUntil,
+      },
+    }).catch(() => undefined);
+    this.logger.debug(`Refresh token rotated for ${userId}`);
+    return tokens;
   }
 
   // ── Logout ─────────────────────────────────────────────────────────

@@ -1,13 +1,26 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Head } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { Public } from './common/decorators/public.decorator'; // ajustá la ruta
+import { Public } from './common/decorators/public.decorator';
 
 @ApiTags('health')
-@Controller('health')
+@Controller()
 export class HealthController {
-  @Public()          // ← esta línea es la clave
-  @Get()
+  @Public()
+  @Get('health')
   check() {
     return { status: 'ok', timestamp: new Date().toISOString() };
+  }
+
+  /** Render / uptime pegan a / — evita 404 ruidoso en logs */
+  @Public()
+  @Get()
+  root() {
+    return { status: 'ok', service: 'fstail-api' };
+  }
+
+  @Public()
+  @Head()
+  rootHead() {
+    return;
   }
 }

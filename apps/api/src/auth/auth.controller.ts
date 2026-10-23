@@ -48,7 +48,7 @@ function setCookies(
 
   res.cookie('accessToken', tokens.accessToken, {
     ...common,
-    maxAge: 15 * 60 * 1000, // 15 min
+    maxAge: 60 * 60 * 1000, // 60 min
   });
 
   res.cookie('refreshToken', tokens.refreshToken, {

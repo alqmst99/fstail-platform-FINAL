@@ -57,14 +57,14 @@ export default function NewAuditPage() {
   return (
     <div className="mx-auto max-w-2xl p-8">
 
-      <h1 className="mb-6 text-2xl font-bold">
+      <h1 className="mb-6 text-2xl font-bold text-surface-50">
         Create Audit
       </h1>
 
       <form onSubmit={createAudit} className="space-y-5">
 
         <div>
-          <label className="mb-1 block text-sm">
+          <label className="mb-1.5 block text-sm font-medium text-surface-300">
             Title
           </label>
 
@@ -72,21 +72,21 @@ export default function NewAuditPage() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            className="w-full rounded border p-2"
+            className="w-full rounded-md border border-surface-600 bg-surface-900 px-3 py-2 text-sm text-surface-50 placeholder:text-surface-500 outline-none focus:border-gold-500"
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-sm">Cliente (opcional)</label>
-          <select value={clientId} onChange={(e) => setClientId(e.target.value)} disabled={loadingOptions} className="w-full rounded border p-2">
+          <label className="mb-1.5 block text-sm font-medium text-surface-300">Cliente (opcional)</label>
+          <select value={clientId} onChange={(e) => setClientId(e.target.value)} disabled={loadingOptions} className="w-full rounded-md border border-surface-600 bg-surface-900 px-3 py-2 text-sm text-surface-50 placeholder:text-surface-500 outline-none focus:border-gold-500">
             <option value="">Sin cliente</option>
             {clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}
           </select>
         </div>
 
         <div>
-          <label className="mb-1 block text-sm">Proyecto (opcional)</label>
-          <select value={projectId} onChange={(e) => setProjectId(e.target.value)} disabled={loadingOptions} className="w-full rounded border p-2">
+          <label className="mb-1.5 block text-sm font-medium text-surface-300">Proyecto (opcional)</label>
+          <select value={projectId} onChange={(e) => setProjectId(e.target.value)} disabled={loadingOptions} className="w-full rounded-md border border-surface-600 bg-surface-900 px-3 py-2 text-sm text-surface-50 placeholder:text-surface-500 outline-none focus:border-gold-500">
             <option value="">Sin proyecto</option>
             {projects.filter((project) => !clientId || project.client?.id === clientId).map((project) => <option key={project.id} value={project.id}>{project.title}</option>)}
           </select>
@@ -100,7 +100,7 @@ export default function NewAuditPage() {
 
         <button
           disabled={loading}
-          className="rounded bg-blue-600 px-4 py-2 text-white"
+          className="rounded-md bg-gold-500 px-4 py-2 text-sm font-semibold text-surface-900 hover:bg-gold-400"
         >
           {loading ? 'Creating...' : 'Create Audit'}
         </button>

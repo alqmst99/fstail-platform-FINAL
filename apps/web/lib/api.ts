@@ -42,6 +42,8 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   if (res.status === 401 && !skipRefresh) {
     const refreshed = await tryRefresh();
     if (refreshed) {
+      // Dar tiempo al browser a aplicar Set-Cookie cross-origin
+      await new Promise((r) => setTimeout(r, 80));
       return request<T>(path, { ...options, skipRefresh: true });
     }
     // Refresh failed — redirect to login
@@ -92,11 +94,12 @@ let proactiveRefreshTimer: ReturnType<typeof setInterval> | null = null;
 export function startProactiveTokenRefresh() {
   if (typeof window === 'undefined') return;
   if (proactiveRefreshTimer) return;
-  // First refresh shortly after mount (covers already-near-expiry sessions)
-  void tryRefresh();
+  // Primer refresh a los 8 min (access dura 60m); luego cada 10 min
   proactiveRefreshTimer = setInterval(() => {
     void tryRefresh();
-  }, 12 * 60 * 1000);
+  }, 10 * 60 * 1000);
+  // Si la pestaña lleva mucho abierta, refrescar una vez a los 8 min
+  window.setTimeout(() => void tryRefresh(), 8 * 60 * 1000);
 }
 
 export function stopProactiveTokenRefresh() {

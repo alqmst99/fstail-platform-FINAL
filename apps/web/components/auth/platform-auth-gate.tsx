@@ -15,7 +15,7 @@ export function PlatformAuthGate({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     const bootTimer = setTimeout(() => {
       if (!cancelled) setPhase('auth');
-    }, 400);
+    }, 80);
 
     (async () => {
       try {
@@ -28,7 +28,7 @@ export function PlatformAuthGate({ children }: { children: React.ReactNode }) {
         if (cancelled) return;
         // Mantener loader un momento y redirigir sin “flash”
         setPhase('redirect');
-        await new Promise((r) => setTimeout(r, 700));
+        await new Promise((r) => setTimeout(r, 250));
         if (!cancelled) router.replace('/login');
       } finally {
         if (!cancelled) setChecking(false);
