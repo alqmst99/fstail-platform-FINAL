@@ -294,7 +294,9 @@ export class FreelancerAuthClient {
       `&limit=${limit}&offset=${offset}` +
       `&project_details=true` +
       `&user_details=true` +
-      `&award_status_possibilities=true`;
+      `&award_status_possibilities=true` +
+      // bid details / ranking signals (si la API los expone, ayudan a "vistos")
+      `&frontend_bid_ratings=true`;
     if (opts.fromTime) path += `&from_time=${opts.fromTime}`;
     if (opts.toTime) path += `&to_time=${opts.toTime}`;
     return this.request('GET', path);

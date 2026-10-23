@@ -768,11 +768,41 @@ export class ApplicationsService {
     if (projectClosed && outcome === 'PENDING') outcome = 'LOST';
     if (outcome === 'UNKNOWN') outcome = 'PENDING';
 
+    // Freelancer no siempre expone un flag "client_viewed" estable.
+    // Combinamos campos directos + proxies (shortlist, award, mensajes, highlight).
     const clientViewed = Boolean(
-      b.client_viewed_at || b.viewed || b.is_viewed || b.highlights?.viewed || b.bid_insights?.viewed || b.time_viewed,
+      b.client_viewed_at ||
+        b.client_viewed ||
+        b.viewed ||
+        b.is_viewed ||
+        b.time_viewed ||
+        b.time_client_viewed ||
+        b.viewed_by_client ||
+        b.highlights?.viewed ||
+        b.bid_insights?.viewed ||
+        b.bid_insights?.client_viewed ||
+        b.paid_features?.highlight ||
+        b.shortlisted ||
+        b.is_shortlisted ||
+        b.highlighted ||
+        // Si ya hubo award / rechazo, el cliente sí miró el bid
+        (outcome === 'WON' || outcome === 'LOST') ||
+        (awardJoined.includes('shortlist')) ||
+        (awardJoined.includes('hidden') === false &&
+          awardStatus &&
+          awardStatus !== 'pending' &&
+          awardStatus !== 'active' &&
+          outcome !== 'PENDING' &&
+          outcome !== 'RETRACTED' &&
+          outcome !== 'UNKNOWN'),
     );
     const profileViewed = Boolean(
-      b.profile_viewed_at || b.profile_viewed || b.highlights?.profile_viewed || b.bid_insights?.profile_viewed,
+      b.profile_viewed_at ||
+        b.profile_viewed ||
+        b.highlights?.profile_viewed ||
+        b.bid_insights?.profile_viewed ||
+        b.profile_visited ||
+        b.employer_viewed_profile,
     );
 
     let winnerAmount: number | null = null;
