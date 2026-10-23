@@ -1,28 +1,5 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
-
-type RequestOptions = Omit<RequestInit, 'body'> & {
-  body?: unknown;
-};
-
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { body, ...fetchOptions } = options;
-  const res = await fetch(`${API_URL}/api${path}`, {
-    ...fetchOptions,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(fetchOptions.headers || {}),
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: res.statusText }));
-    const msg = Array.isArray(err.message) ? err.message.join(', ') : err.message || res.statusText;
-    throw new Error(msg);
-  }
-  if (res.status === 204) return undefined as T;
-  return res.json() as Promise<T>;
-}
+// apps/web/lib/applications-api.ts
+import { request } from './api';
 
 export const applicationsApi = {
   stats: (assignedTo?: string) => {
@@ -38,7 +15,9 @@ export const applicationsApi = {
     if (q?.page) params.set('page', String(q.page));
     if (q?.pageSize) params.set('pageSize', String(q.pageSize));
     const qs = params.toString();
-    return request<{ data: any[]; total: number; page: number; pageSize: number; totalPages: number }>(`/applications${qs ? `?${qs}` : ''}`);
+    return request<{ data: any[]; total: number; page: number; pageSize: number; totalPages: number }>(
+      `/applications${qs ? `?${qs}` : ''}`,
+    );
   },
   get: (id: string) => request<any>(`/applications/${id}`),
   create: (body: Record<string, unknown>) =>

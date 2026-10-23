@@ -26,6 +26,7 @@ export default function ApplicationsPage() {
   const [apps, setApps] = useState<any[]>([]);
   const [filter, setFilter] = useState('');
   const [sourceFilter, setSourceFilter] = useState('');
+  const [viewedFilter, setViewedFilter] = useState(''); // '' | 'viewed' | 'not_viewed' | 'contact' | 'won'
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState('');
@@ -49,18 +50,27 @@ export default function ApplicationsPage() {
           return s === sourceFilter;
         });
         }
+        if (viewedFilter === 'viewed') {
+          rows = rows.filter((a: any) => !!a.clientViewed || ['EN_CONVERSACION','ADJUDICADO_A_MIME','ADJUDICADO_A_OTRO'].includes(a.status));
+        } else if (viewedFilter === 'not_viewed') {
+          rows = rows.filter((a: any) => !a.clientViewed && a.status === 'POSTULADO');
+        } else if (viewedFilter === 'contact') {
+          rows = rows.filter((a: any) => a.status === 'EN_CONVERSACION' || (a.messages?.[0]?.sender === 'client'));
+        } else if (viewedFilter === 'won') {
+          rows = rows.filter((a: any) => a.status === 'ADJUDICADO_A_MIME');
+        }
         setApps(rows);
         setTotalPages(d.totalPages || 1);
       })
       .catch(() => setApps([]))
       .finally(() => setLoading(false));
-  }, [filter, sourceFilter, page]);
+  }, [filter, sourceFilter, viewedFilter, page]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  useEffect(() => setPage(1), [filter, sourceFilter]);
+  useEffect(() => setPage(1), [filter, sourceFilter, viewedFilter]);
 
   async function handleSync() {
     setSyncing(true);
@@ -110,6 +120,17 @@ export default function ApplicationsPage() {
             <option value="">Todas las fuentes</option>
             <option value="RADAR">Solo Radar</option>
             <option value="FREELANCER">Solo Freelancer</option>
+          </select>
+          <select
+            value={viewedFilter}
+            onChange={(e) => setViewedFilter(e.target.value)}
+            className="rounded-lg border border-surface-700 bg-surface-900 px-3 py-2 text-sm text-surface-200"
+          >
+            <option value="">Vistos / contacto</option>
+            <option value="viewed">Solo vistos</option>
+            <option value="not_viewed">Sin ver</option>
+            <option value="contact">Con contacto</option>
+            <option value="won">Ganadas</option>
           </select>
           <select
             value={filter}

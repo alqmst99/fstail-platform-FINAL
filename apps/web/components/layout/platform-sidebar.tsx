@@ -12,16 +12,17 @@ const NAV_ITEMS = [
   { href: '/settings', icon: '⚙', label: 'Settings' },
 ];
 
+/** Pestañas tipo archivador en la parte superior (reemplaza el aside lateral). */
 export function PlatformSidebar() {
   const pathname = usePathname() || '';
 
   return (
-    <header className="shrink-0 border-b border-teal-800/60 bg-[#071a1d]">
-      <div className="flex h-12 items-center gap-2 px-3 overflow-x-auto">
-        <span className="mr-2 shrink-0 text-sm font-bold tracking-wide text-gold-400">
-          FSTail <span className="font-light text-teal-100/50">Platform</span>
+    <header className="shrink-0 border-b border-teal-800/80 bg-[#061416]">
+      <div className="flex items-end gap-0 px-2 pt-2 overflow-x-auto">
+        <span className="mb-2 mr-3 shrink-0 self-center px-2 text-sm font-bold tracking-wide text-gold-400">
+          FSTail
         </span>
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-end gap-0.5">
           {NAV_ITEMS.map((item) => {
             const active =
               pathname === item.href ||
@@ -30,10 +31,10 @@ export function PlatformSidebar() {
               <a
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm whitespace-nowrap transition ${
+                className={`relative flex items-center gap-1.5 rounded-t-lg border border-b-0 px-3.5 py-2 text-sm whitespace-nowrap transition ${
                   active
-                    ? 'bg-teal-900/80 text-gold-300'
-                    : 'text-teal-100/60 hover:bg-teal-900/60 hover:text-gold-300'
+                    ? 'z-10 border-teal-600/80 bg-surface-900 text-gold-300 -mb-px pb-2.5 shadow-[0_-2px_8px_rgba(0,0,0,0.25)]'
+                    : 'border-transparent bg-teal-950/50 text-teal-100/55 hover:bg-teal-900/50 hover:text-gold-300'
                 }`}
               >
                 <span className="text-base text-gold-500">{item.icon}</span>

@@ -1,6 +1,3 @@
-// apps/web/app/(platform)/layout.tsx
-// Horizontal top tabs navigation (replaces left aside).
-
 import { UpdateBanner } from '../../components/update-banner';
 import { PlatformAuthGate } from '../../components/auth/platform-auth-gate';
 import { PlatformSidebar } from '../../components/layout/platform-sidebar';
@@ -14,8 +11,9 @@ export default function PlatformLayout({
     <PlatformAuthGate>
       <div className="flex h-screen flex-col bg-surface-900 overflow-hidden">
         <UpdateBanner />
+        {/* Pestañas horizontales tipo archivador */}
         <PlatformSidebar />
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-auto border-t border-teal-800/40">{children}</main>
       </div>
     </PlatformAuthGate>
   );

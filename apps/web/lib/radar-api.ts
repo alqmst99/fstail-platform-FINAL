@@ -126,7 +126,7 @@ export const radarApi = {
     minDescriptionLength?: number;
     maxBidCount?: number;
   }) =>
-    api<ScanResult>('/radar/scan', { method: 'POST', body: JSON.stringify(params) }),
+    api<ScanResult>('/radar/scan', { method: 'POST', body: params }),
 
   scans: (page = 1) =>
     api<{ data: any[]; total: number; totalPages: number }>(
@@ -143,7 +143,7 @@ export const radarApi = {
   }) =>
     api<GenerateResult>('/radar/proposals/generate', {
       method: 'POST',
-      body: JSON.stringify(params),
+      body: params,
     }),
 
   proposals: (params: { page?: number; framework?: Framework; scanId?: string } = {}) => {

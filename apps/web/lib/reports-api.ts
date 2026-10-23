@@ -58,18 +58,18 @@ export const reportsApi = {
     auditIds?: string[];
     applicationReport?: boolean;
     blocks?: ReportBlock[];
-  }) => api<ReportSummary>('/reports', { method: 'POST', body: JSON.stringify(data) }),
+  }) => api<ReportSummary>('/reports', { method: 'POST', body: data }),
 
   update: (id: string, data: { title?: string; blocks?: ReportBlock[] }) =>
     api<ReportDetail>(`/reports/${id}`, {
       method: 'PATCH',
-      body: JSON.stringify(data),
+      body: data,
     }),
 
   publish: (id: string, ttlDays = 30) =>
     api<PublishResult>(`/reports/${id}/publish`, {
       method: 'POST',
-      body: JSON.stringify({ ttlDays }),
+      body: { ttlDays },
     }),
 
   unpublish: (id: string) =>

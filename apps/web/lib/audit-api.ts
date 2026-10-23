@@ -97,15 +97,15 @@ export const auditApi = {
   get: (id: string) => api<AuditDetail>(`/audits/${id}`),
 
   create: (data: { title: string; clientId?: string; projectId?: string; templateId?: string; generalInfo?: Record<string, string> }) =>
-    api<AuditSummary>('/audits', { method: 'POST', body: JSON.stringify(data) }),
+    api<AuditSummary>('/audits', { method: 'POST', body: data }),
 
   update: (id: string, data: Partial<{ title: string; status: AuditStatus; clientId: string; projectId: string }>) =>
-    api<AuditSummary>(`/audits/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    api<AuditSummary>(`/audits/${id}`, { method: 'PATCH', body: data }),
 
   updateSections: (id: string, sections: Partial<AuditSection>[], version: number) =>
     api<AuditDetail & { isComplete: boolean }>(`/audits/${id}/sections`, {
       method: 'PATCH',
-      body: JSON.stringify({ sections, version }),
+      body: { sections, version },
     }),
 
   submit: (id: string) =>
