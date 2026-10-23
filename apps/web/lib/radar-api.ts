@@ -94,11 +94,21 @@ export interface RadarStats {
   byFramework: Record<string, number>;
 }
 
-async function api<T>(path: string, init?: RequestInit): Promise<T> {
+type ApiInit = {
+  method?: string;
+  headers?: HeadersInit;
+  body?: unknown;
+};
+
+async function api<T>(path: string, init?: ApiInit): Promise<T> {
   const res = await fetch(`${API}/api${path}`, {
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    ...init,
+    method: init?.method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(init?.headers as Record<string, string> | undefined),
+    },
+    body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

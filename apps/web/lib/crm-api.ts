@@ -54,7 +54,13 @@ export interface ClientStats {
 
 // ── helpers ──────────────────────────────────────────────────────────
 
-async function api<T>(path: string, init?: RequestInit): Promise<T> {
+type ApiInit = {
+  method?: string;
+  headers?: HeadersInit;
+  body?: unknown;
+};
+
+async function api<T>(path: string, init?: ApiInit): Promise<T> {
   return request<T>(path, init as any);
 }
 
