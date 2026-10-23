@@ -78,7 +78,7 @@ export const clientsApi = {
   get: (id: string) => api<ClientDetail>(`/clients/${id}`),
 
   create: (data: { name: string; email?: string; phone?: string; website?: string; status?: ClientStatus; notes?: string }) =>
-    api<Client>('/clients', { method: 'POST', body: JSON.stringify(data) }),
+    api<Client>('/clients', { method: 'POST', body: data }),
 
   update: (
     id: string,
@@ -93,7 +93,7 @@ export const clientsApi = {
   ) =>
     api<Client>(`/clients/${id}`, {
       method: 'PATCH',
-      body: JSON.stringify(data),
+      body: data,
     }),
   delete: (id: string) => api<void>(`/clients/${id}`, { method: 'DELETE' }),
 };
@@ -109,7 +109,7 @@ export const projectsApi = {
   get: (id: string) => api<Project & { audits: any[] }>(`/projects/${id}`),
 
   create: (data: { title: string; description?: string; clientId?: string; status?: ProjectStatus }) =>
-    api<Project>('/projects', { method: 'POST', body: JSON.stringify(data) }),
+    api<Project>('/projects', { method: 'POST', body: data }),
 
   update: (
     id: string,
@@ -122,7 +122,7 @@ export const projectsApi = {
   ) =>
     api<Project>(`/projects/${id}`, {
       method: 'PATCH',
-      body: JSON.stringify(data),
+      body: data,
     }),
   delete: (id: string) => api<void>(`/projects/${id}`, { method: 'DELETE' }),
 };

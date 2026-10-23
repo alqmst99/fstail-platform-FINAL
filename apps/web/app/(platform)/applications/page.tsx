@@ -31,6 +31,11 @@ export default function ApplicationsPage() {
   const [syncMsg, setSyncMsg] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [detailId, setDetailId] = useState<string | null>(null);
+
+  function openDetail(id: string) {
+    setDetailId(id);
+  }
 
   const load = useCallback(() => {
     setLoading(true);
@@ -159,7 +164,7 @@ export default function ApplicationsPage() {
             const isFl = src === 'FREELANCER';
             const hasClientMessage = (app._count?.messages ?? 0) > 0 && app.messages?.[0]?.sender === 'client';
             const isWon = app.status === 'ADJUDICADO_A_MIME';
-            const isViewed = hasClientMessage || ['EN_CONVERSACION', 'ADJUDICADO_A_MIME', 'ADJUDICADO_A_OTRO'].includes(app.status);
+            const isViewed = !!app.clientViewed || hasClientMessage || ['EN_CONVERSACION', 'ADJUDICADO_A_MIME', 'ADJUDICADO_A_OTRO'].includes(app.status);
             const cardTone = isWon
               ? 'border-cyan-400/70 bg-cyan-950/20 hover:border-cyan-300'
               : hasClientMessage
@@ -170,10 +175,11 @@ export default function ApplicationsPage() {
                     ? 'border-cyan-500/40 hover:border-cyan-400/70'
                     : 'border-surface-700 hover:border-surface-500';
             return (
-              <Link
+              <button
+                type="button"
                 key={app.id}
-                href={`/applications/${app.id}`}
-                className={`block rounded-xl border p-4 transition-all duration-300 hover:-translate-y-0.5 ${cardTone}`}
+                onClick={() => openDetail(app.id)}
+                className={`w-full text-left block rounded-xl border p-4 transition-all duration-300 hover:-translate-y-0.5 ${cardTone}`}
               >
                 <div className="flex justify-between gap-3 items-start">
                   <div>
@@ -208,7 +214,7 @@ export default function ApplicationsPage() {
                     {app.winnerRating != null ? ` · ★ ${app.winnerRating}` : ''}
                   </p>
                 )}
-              </Link>
+              </button>
             );
           })}
         </div>
@@ -222,6 +228,175 @@ export default function ApplicationsPage() {
           </div>
         </div>
       )}
+
+      {detailId && (
+        <ApplicationModal
+          id={detailId}
+          onClose={() => {
+            setDetailId(null);
+            load();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ApplicationModal({ id, onClose }: { id: string; onClose: () => void }) {
+  const [app, setApp] = useState<any>(null);
+  const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const loadDetail = () => {
+    setLoading(true);
+    applicationsApi
+      .get(id)
+      .then(setApp)
+      .catch(() => setApp(null))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadDetail();
+  }, [id]);
+
+  async function sendMessage() {
+    if (!message.trim()) return;
+    setSending(true);
+    try {
+      await applicationsApi.addMessage(id, message.trim(), 'me');
+      setMessage('');
+      loadDetail();
+    } catch (e: any) {
+      alert(e.message || 'No se pudo enviar el mensaje');
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-surface-600 bg-surface-900 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-surface-700 px-5 py-3">
+          <div className="min-w-0">
+            <p className="text-xs text-surface-500">Postulación</p>
+            <h2 className="truncate text-lg font-semibold text-surface-50">
+              {app?.title || (loading ? 'Cargando…' : '—')}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md px-3 py-1.5 text-sm text-surface-400 hover:bg-surface-800 hover:text-surface-100"
+          >
+            Cerrar
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {loading && <p className="text-sm text-surface-500">Cargando detalle…</p>}
+          {!loading && !app && <p className="text-sm text-red-400">No se pudo cargar</p>}
+          {app && (
+            <>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="rounded-full bg-surface-800 px-2.5 py-1 text-surface-300">
+                  {STATUS_LABELS[app.status] || app.status}
+                </span>
+                {app.clientCountry && (
+                  <span className="rounded-full bg-surface-800 px-2.5 py-1 text-surface-300">
+                    🌍 {app.clientCountry}
+                  </span>
+                )}
+                {app.clientViewed && (
+                  <span className="rounded-full bg-emerald-500/20 px-2.5 py-1 text-emerald-300">Visto</span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <Metric label="Tu oferta" value={`$${app.submittedPrice}`} />
+                <Metric label="Días" value={String(app.submittedDays)} />
+                <Metric label="Promedio" value={app.avgBidPrice != null ? `$${app.avgBidPrice}` : '—'} />
+                <Metric
+                  label="Ganador"
+                  value={app.winnerBidPrice != null ? `$${app.winnerBidPrice}` : '—'}
+                />
+              </div>
+
+              <div className="rounded-xl border border-surface-700 bg-surface-950/50 p-4">
+                <h3 className="text-sm font-medium text-surface-300 mb-2">Descripción</h3>
+                <p className="text-xs text-surface-400 whitespace-pre-wrap max-h-40 overflow-y-auto">
+                  {app.translatedDesc || app.rawDescription || '—'}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-surface-700 overflow-hidden">
+                <div className="px-4 py-3 border-b border-surface-700 text-sm font-medium text-surface-200">
+                  Conversación
+                </div>
+                <div className="p-4 space-y-3 max-h-56 overflow-y-auto">
+                  {(app.messages || []).length === 0 && (
+                    <p className="text-sm text-surface-500 text-center py-6">Sin mensajes</p>
+                  )}
+                  {(app.messages || []).map((m: any) => (
+                    <div key={m.id} className={`flex ${m.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
+                      <div
+                        className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
+                          m.sender === 'me' ? 'bg-emerald-600 text-white' : 'bg-surface-800 text-surface-100'
+                        }`}
+                      >
+                        {m.text}
+                        <div className={`text-[10px] mt-1 ${m.sender === 'me' ? 'text-emerald-100' : 'text-surface-500'}`}>
+                          {new Date(m.timestamp).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="p-3 border-t border-surface-700 flex gap-2">
+                  <input
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                    placeholder="Mensaje…"
+                    className="flex-1 rounded-lg border border-surface-700 bg-surface-950 px-3 py-2 text-sm text-surface-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={sendMessage}
+                    disabled={sending || !message.trim()}
+                    className="rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-sm px-4 py-2"
+                  >
+                    Enviar
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-surface-700 p-4">
+                <h3 className="text-sm font-medium text-surface-300 mb-2">Tu propuesta</h3>
+                <pre className="text-xs text-surface-400 whitespace-pre-wrap max-h-40 overflow-y-auto">
+                  {app.proposalText}
+                </pre>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-surface-700 bg-surface-950/60 p-3">
+      <div className="text-[10px] uppercase tracking-wide text-surface-500">{label}</div>
+      <div className="text-base font-semibold text-surface-100 mt-0.5">{value}</div>
     </div>
   );
 }

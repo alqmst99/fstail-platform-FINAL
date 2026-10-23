@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { authApi } from '../../lib/api';
+import { authApi, startProactiveTokenRefresh, stopProactiveTokenRefresh } from '../../lib/api';
 import { LoadingBanner } from '../layout/loading-banner';
 
 export function PlatformAuthGate({ children }: { children: React.ReactNode }) {
@@ -15,7 +15,10 @@ export function PlatformAuthGate({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         await authApi.me(); // credentials: 'include' → manda cookie a Render
-        if (!cancelled) setOk(true);
+        if (!cancelled) {
+          setOk(true);
+          startProactiveTokenRefresh();
+        }
       } catch {
         if (!cancelled) router.replace('/login');
       } finally {
@@ -24,6 +27,7 @@ export function PlatformAuthGate({ children }: { children: React.ReactNode }) {
     })();
     return () => {
       cancelled = true;
+      stopProactiveTokenRefresh();
     };
   }, [router]);
 

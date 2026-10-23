@@ -111,8 +111,43 @@ export class ApplicationsService {
       this.db.application.count({ where }),
     ]);
 
+    // Enrich with clientViewed / profileViewed / winner from FreelancerBidSnapshot
+    const bidIds = (data as any[])
+      .map((a) => a.externalBidId)
+      .filter(Boolean) as string[];
+    let snapByBid: Record<string, any> = {};
+    if (bidIds.length > 0) {
+      try {
+        const snaps = await this.db.freelancerBidSnapshot.findMany({
+          where: { workspaceId, externalBidId: { in: bidIds } },
+          select: {
+            externalBidId: true,
+            clientViewed: true,
+            profileViewed: true,
+            winnerAmount: true,
+            outcome: true,
+            awardStatus: true,
+          },
+        });
+        snapByBid = Object.fromEntries(snaps.map((s: any) => [s.externalBidId, s]));
+      } catch (e: any) {
+        this.logger.warn(`snapshot enrich failed: ${e.message}`);
+      }
+    }
+
+    const enriched = (data as any[]).map((a) => {
+      const snap = a.externalBidId ? snapByBid[a.externalBidId] : null;
+      return {
+        ...a,
+        clientViewed: snap?.clientViewed ?? false,
+        profileViewed: snap?.profileViewed ?? false,
+        // Keep winner if already on application; else from snapshot
+        winnerBidPrice: a.winnerBidPrice ?? snap?.winnerAmount ?? null,
+      };
+    });
+
     return {
-      data,
+      data: enriched,
       total,
       page,
       pageSize,

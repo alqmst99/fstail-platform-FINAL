@@ -147,6 +147,7 @@ export default function RadarPage() {
   const [autoScan, setAutoScan] = useState(false);
   const [scanIntervalMinutes, setScanIntervalMinutes] = useState(15);
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [applicationByProject, setApplicationByProject] = useState<Record<string, any>>({});
 
   useEffect(() => {
@@ -307,23 +308,38 @@ export default function RadarPage() {
             Ordenado por calidad · tiempo · bids · colores por tier
           </p>
         </div>
-        <div className="flex gap-1 rounded-lg bg-surface-950/80 p-0.5 border border-teal-800/60">
-          {(['scan', 'history'] as View[]).map((v) => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => setView(v)}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
-                view === v ? 'bg-gold-500 text-surface-950' : 'text-teal-100/60 hover:text-gold-300'
-              }`}
-            >
-              {v === 'scan' ? 'Scan' : 'Historial'}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowFilters((v) => !v)}
+            className={`rounded-md px-3 py-1.5 text-xs border transition ${
+              showFilters
+                ? 'border-gold-500/60 text-gold-300 bg-gold-500/10'
+                : 'border-teal-700 text-teal-100/70 hover:border-gold-500/40'
+            }`}
+          >
+            {showFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
+          </button>
+          <div className="flex gap-1 rounded-lg bg-surface-950/80 p-0.5 border border-teal-800/60">
+            {(['scan', 'history'] as View[]).map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setView(v)}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                  view === v ? 'bg-gold-500 text-surface-950' : 'text-teal-100/60 hover:text-gold-300'
+                }`}
+              >
+                {v === 'scan' ? 'Scan' : 'Historial'}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
+        {/* Filtros ocultos por defecto — toggle con botón en header */}
+        {showFilters && (
         <aside className="w-72 shrink-0 border-r border-teal-800/60 bg-[#071a1d] overflow-y-auto p-4 space-y-5">
           <form onSubmit={handleScan} className="space-y-4">
             <div>
@@ -536,8 +552,33 @@ export default function RadarPage() {
             </div>
           )}
         </aside>
+        )}
 
         <main className="flex-1 overflow-auto">
+          {!showFilters && view === 'scan' && (
+            <form onSubmit={handleScan} className="flex flex-wrap items-center gap-2 border-b border-teal-800/40 bg-[#071a1d]/60 px-4 py-2">
+              <input
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                placeholder="Keyword (react, nextjs…)"
+                className="rounded-lg border border-surface-700 bg-surface-900 px-3 py-1.5 text-sm text-surface-100 min-w-[12rem]"
+              />
+              <button
+                type="submit"
+                disabled={scanning}
+                className="rounded-lg bg-gold-500 px-4 py-1.5 text-sm font-semibold text-surface-900 hover:bg-gold-400 disabled:opacity-50"
+              >
+                {scanning ? 'Escaneando…' : 'Scan'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowFilters(true)}
+                className="text-xs text-teal-100/50 hover:text-gold-300"
+              >
+                Más filtros →
+              </button>
+            </form>
+          )}
           {view === 'scan' && (
             <ProjectGrid
               projects={sortedProjects}

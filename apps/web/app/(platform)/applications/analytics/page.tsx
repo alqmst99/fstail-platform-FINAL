@@ -357,22 +357,71 @@ function TrendChart({ title, rows }: { title: string; rows: Array<{ label: strin
 
 function OutcomeChart({ data }: { data: any }) {
   const rows = [
-    ['Ganadas · selladas', data?.awarded ?? 0, 'bg-cyan-400'],
-    ['Vistas', data?.viewed ?? 0, 'bg-emerald-400'],
-    ['Perdidas', data?.lost ?? 0, 'bg-red-400'],
-    ['Pendientes', data?.pending ?? 0, 'bg-amber-400'],
-  ] as const;
-  const max = Math.max(...rows.map(([, value]) => Number(value)), 1);
+    { label: 'Ganadas', value: Number(data?.awarded ?? 0), color: '#22d3ee' },
+    { label: 'Vistas', value: Number(data?.viewed ?? 0), color: '#34d399' },
+    { label: 'Perdidas', value: Number(data?.lost ?? 0), color: '#f87171' },
+    { label: 'Pendientes', value: Number(data?.pending ?? 0), color: '#fbbf24' },
+  ];
+  const total = rows.reduce((s, r) => s + r.value, 0) || 1;
+  // Build pie slices as SVG arcs
+  let angle = -90;
+  const slices = rows.map((r) => {
+    const portion = (r.value / total) * 360;
+    const start = angle;
+    angle += portion;
+    return { ...r, start, end: angle };
+  });
+
+  function polar(cx: number, cy: number, r: number, deg: number) {
+    const rad = (deg * Math.PI) / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  }
+  function arcPath(start: number, end: number) {
+    const r = 40;
+    const s = polar(50, 50, r, start);
+    const e = polar(50, 50, r, end);
+    const large = end - start > 180 ? 1 : 0;
+    if (end - start < 0.5) return '';
+    return `M 50 50 L ${s.x} ${s.y} A ${r} ${r} 0 ${large} 1 ${e.x} ${e.y} Z`;
+  }
+
   return (
     <div className="rounded-2xl border border-surface-700 bg-surface-900/90 p-5">
       <h2 className="text-sm font-semibold text-surface-200 mb-4">Distribución de resultados</h2>
-      <div className="space-y-4">
-        {rows.map(([label, value, color]) => (
-          <div key={label}>
-            <div className="mb-1 flex justify-between text-xs"><span className="text-surface-400">{label}</span><span className="text-surface-200">{value}</span></div>
-            <div className="h-2 rounded-full bg-surface-800"><div className={`h-2 rounded-full ${color} transition-all duration-700`} style={{ width: `${(Number(value) / max) * 100}%` }} /></div>
-          </div>
-        ))}
+      <div className="flex flex-col sm:flex-row items-center gap-6">
+        <svg viewBox="0 0 100 100" className="h-40 w-40 shrink-0">
+          {total === 0 || rows.every((r) => r.value === 0) ? (
+            <circle cx="50" cy="50" r="40" fill="#1e293b" />
+          ) : (
+            slices.map((s) =>
+              s.value > 0 ? (
+                <path key={s.label} d={arcPath(s.start, s.end)} fill={s.color} stroke="#0f172a" strokeWidth="0.5">
+                  <title>{`${s.label}: ${s.value}`}</title>
+                </path>
+              ) : null,
+            )
+          )}
+          <circle cx="50" cy="50" r="22" fill="#0f172a" />
+          <text x="50" y="52" textAnchor="middle" fill="#e2e8f0" fontSize="10" fontWeight="600">
+            {rows.reduce((s, r) => s + r.value, 0)}
+          </text>
+        </svg>
+        <div className="space-y-2 w-full">
+          {rows.map((r) => (
+            <div key={r.label} className="flex items-center justify-between text-xs gap-3">
+              <span className="flex items-center gap-2 text-surface-400">
+                <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: r.color }} />
+                {r.label}
+              </span>
+              <span className="text-surface-200 font-medium">
+                {r.value}
+                <span className="text-surface-500 ml-1">
+                  ({Math.round((r.value / total) * 100)}%)
+                </span>
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -85,6 +85,27 @@ async function tryRefresh(): Promise<boolean> {
   return refreshPromise;
 }
 
+// Access token cookie lasts 15 min. Refresh proactively every 12 min while the tab is open
+// so idle users are not kicked out on the next request after expiry.
+let proactiveRefreshTimer: ReturnType<typeof setInterval> | null = null;
+
+export function startProactiveTokenRefresh() {
+  if (typeof window === 'undefined') return;
+  if (proactiveRefreshTimer) return;
+  // First refresh shortly after mount (covers already-near-expiry sessions)
+  void tryRefresh();
+  proactiveRefreshTimer = setInterval(() => {
+    void tryRefresh();
+  }, 12 * 60 * 1000);
+}
+
+export function stopProactiveTokenRefresh() {
+  if (proactiveRefreshTimer) {
+    clearInterval(proactiveRefreshTimer);
+    proactiveRefreshTimer = null;
+  }
+}
+
 // ── Auth endpoints ────────────────────────────────────────────────────
 
 export const authApi = {
