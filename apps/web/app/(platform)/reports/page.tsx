@@ -1,173 +1,118 @@
-// apps/web/app/(platform)/reports/page.tsx
-import { cookies } from 'next/headers';
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import type { Metadata } from 'next';
+import { reportsApi, type ReportSummary } from '../../../lib/reports-api';
 
-export const metadata: Metadata = { title: 'Reports' };
+export default function ReportsPage() {
+  const [reports, setReports] = useState<ReportSummary[]>([]);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-async function fetchReports(searchParams: Record<string, string>) {
-  const token = cookies().get('accessToken')?.value;
-  const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
-  const qs = new URLSearchParams(searchParams).toString();
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const list = await reportsApi.list({ page, ...(search ? { search } : {}) });
+      setReports(list.data || []);
+      setTotalPages(list.totalPages || 1);
+    } catch (e: any) {
+      setError(e.message || 'No se pudieron cargar los reports');
+      setReports([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search]);
 
-  const res = await fetch(`${API}/api/reports?${qs}`, {
-    headers: { Cookie: `accessToken=${token}` },
-    cache: 'no-store',
-  });
-  return res.ok ? res.json() : { data: [], total: 0, totalPages: 1 };
-}
+  useEffect(() => {
+    load();
+  }, [load]);
 
-function PortalBadge({
-  active,
-  expiresAt,
-}: {
-  active: boolean;
-  expiresAt: string | null;
-}) {
-  if (!active) {
-    return (
-      <span className="rounded border border-surface-700 px-1.5 py-0.5 text-xs text-surface-500">
-        Draft
-      </span>
-    );
-  }
-  const days = expiresAt
-    ? Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86_400_000)
-    : null;
-  return (
-    <span className="rounded border border-emerald-800 bg-emerald-950 px-1.5 py-0.5 text-xs text-emerald-400">
-      Published{days !== null ? ` · ${days}d left` : ''}
-    </span>
-  );
-}
-
-export default async function ReportsPage({
-  searchParams,
-}: {
-  searchParams: Record<string, string>;
-}) {
-  const reports = await fetchReports(searchParams);
-  const currentPage = Number(searchParams['page'] ?? 1);
-  const search = searchParams['search'] ?? '';
+  useEffect(() => setPage(1), [search]);
 
   return (
     <div className="flex h-full flex-col">
-
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-surface-700 px-6 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-700 px-4 py-4 sm:px-6">
         <div>
           <h1 className="text-lg font-semibold text-surface-50">Reports</h1>
-          <p className="text-sm text-surface-400">
-            {reports.total} report{reports.total !== 1 ? 's' : ''}
-          </p>
+          <p className="text-sm text-surface-400">Informes y portal cliente</p>
         </div>
         <Link
           href="/reports/new"
-          className="rounded-md bg-gold-500 px-3 py-1.5 text-sm font-semibold text-surface-900 hover:bg-gold-400 transition"
+          className="rounded-md bg-gold-500 px-3 py-1.5 text-sm font-semibold text-surface-900 hover:bg-gold-400"
         >
           + New report
         </Link>
       </div>
 
-      {/* Search */}
-      <div className="border-b border-surface-700 px-6 py-3">
-        <form>
-          <input
-            name="search"
-            defaultValue={search}
-            placeholder="Search reports…"
-            className="w-full max-w-sm rounded-md border border-surface-600 bg-surface-800 px-3 py-1.5 text-sm text-surface-50 placeholder-surface-500 outline-none focus:border-gold-500"
-          />
-        </form>
+      <div className="border-b border-surface-700 px-4 py-3 sm:px-6">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar reports…"
+          className="w-full max-w-sm rounded-md border border-surface-600 bg-surface-900 px-3 py-1.5 text-sm text-surface-50 placeholder-surface-500 outline-none focus:border-gold-500"
+        />
       </div>
 
-      {/* List */}
-      <div className="flex-1 overflow-auto">
-        {reports.data.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-surface-500">
-            <p className="text-sm">No reports yet</p>
-            <Link href="/reports/new" className="mt-3 text-xs text-gold-500 hover:text-gold-400">
-              Create your first report →
+      <div className="flex-1 overflow-auto p-4 sm:p-6">
+        {loading && <p className="text-sm text-surface-500">Cargando…</p>}
+        {error && (
+          <p className="mb-3 rounded-md border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-300">{error}</p>
+        )}
+        {!loading && !error && reports.length === 0 && (
+          <div className="rounded-xl border border-surface-700 bg-surface-900 p-10 text-center">
+            <p className="text-sm text-surface-400">No hay reports todavía.</p>
+            <Link href="/reports/new" className="mt-3 inline-block text-sm text-gold-400">
+              Crear el primero →
             </Link>
           </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 border-b border-surface-700 bg-surface-900">
-              <tr>
-                {['Title', 'Status', 'Created by', 'Updated', ''].map((h) => (
-                  <th
-                    key={h}
-                    className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-800">
-              {reports.data.map((r: any) => (
-                <tr key={r.id} className="hover:bg-surface-800/50 transition">
-                  <td className="px-6 py-3">
-                    <Link
-                      href={`/reports/${r.id}`}
-                      className="font-medium text-surface-50 hover:text-gold-400"
-                    >
-                      {r.title}
-                    </Link>
-                  </td>
-                  <td className="px-6 py-3">
-                    <PortalBadge
-                      active={r.portalActive}
-                      expiresAt={r.portalTokenExpiresAt}
-                    />
-                  </td>
-                  <td className="px-6 py-3 text-surface-400">
-                    {r.createdBy.displayName}
-                  </td>
-                  <td className="px-6 py-3 text-xs text-surface-500">
-                    {new Date(r.updatedAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-3">
-                    <Link
-                      href={`/reports/${r.id}`}
-                      className="text-xs text-surface-500 hover:text-surface-300"
-                    >
-                      Open →
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        )}
+        <div className="space-y-2">
+          {reports.map((r) => (
+            <Link
+              key={r.id}
+              href={`/reports/${r.id}`}
+              className="block rounded-xl border border-surface-700 bg-surface-900/80 p-4 transition hover:border-gold-500/40"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-medium text-surface-100">{r.title}</h3>
+                  <p className="mt-1 text-xs text-surface-500">
+                    {r.createdBy?.displayName || '—'} · {new Date(r.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <span
+                  className={`shrink-0 rounded-full px-2.5 py-1 text-xs ${
+                    r.portalActive
+                      ? 'bg-emerald-500/20 text-emerald-300'
+                      : 'bg-surface-800 text-surface-400'
+                  }`}
+                >
+                  {r.portalActive ? 'Published' : 'Draft'}
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+        {totalPages > 1 && (
+          <div className="mt-4 flex justify-between text-xs text-surface-500">
+            <span>
+              Página {page}/{totalPages}
+            </span>
+            <div className="flex gap-2">
+              <button type="button" disabled={page === 1} onClick={() => setPage((p) => p - 1)} className="rounded border border-surface-700 px-3 py-1.5 disabled:opacity-30">
+                Anterior
+              </button>
+              <button type="button" disabled={page === totalPages} onClick={() => setPage((p) => p + 1)} className="rounded border border-surface-700 px-3 py-1.5 disabled:opacity-30">
+                Siguiente
+              </button>
+            </div>
+          </div>
         )}
       </div>
-
-      {/* Pagination */}
-      {reports.totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-surface-700 px-6 py-3">
-          <p className="text-xs text-surface-500">
-            Page {currentPage} of {reports.totalPages}
-          </p>
-          <div className="flex gap-2">
-            {currentPage > 1 && (
-              <Link
-                href={`?page=${currentPage - 1}`}
-                className="rounded-md border border-surface-600 px-3 py-1 text-xs text-surface-300 hover:bg-surface-800"
-              >
-                ← Prev
-              </Link>
-            )}
-            {currentPage < reports.totalPages && (
-              <Link
-                href={`?page=${currentPage + 1}`}
-                className="rounded-md border border-surface-600 px-3 py-1 text-xs text-surface-300 hover:bg-surface-800"
-              >
-                Next →
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

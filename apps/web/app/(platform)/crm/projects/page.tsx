@@ -1,51 +1,58 @@
-// apps/web/app/(platform)/crm/projects/page.tsx
-import { cookies } from 'next/headers';
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { StatusBadge } from '../../../../components/ui/status-badge';
-import type { Metadata } from 'next';
+import { projectsApi, type Project } from '../../../../lib/crm-api';
 
-export const metadata: Metadata = { title: 'Projects' };
+const STATUS_LABEL: Record<string, string> = {
+  ACTIVE: 'Active',
+  COMPLETED: 'Completed',
+  ON_HOLD: 'On hold',
+  CANCELLED: 'Cancelled',
+};
 
-async function fetchProjects(searchParams: Record<string, string>) {
-  const token = cookies().get('accessToken')?.value;
-  const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
-  const qs = new URLSearchParams(searchParams).toString();
+export default function ProjectsPage() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [stats, setStats] = useState<Record<string, number> | null>(null);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const [projRes, statsRes] = await Promise.all([
-    fetch(`${API}/api/projects?${qs}`, {
-      headers: { Cookie: `accessToken=${token}` },
-      cache: 'no-store',
-    }),
-    fetch(`${API}/api/projects/stats`, {
-      headers: { Cookie: `accessToken=${token}` },
-      cache: 'no-store',
-    }),
-  ]);
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const [list, st] = await Promise.all([
+        projectsApi.list({ page, pageSize: 25, ...(search ? { search } : {}) }),
+        projectsApi.stats(),
+      ]);
+      setProjects(list.data || []);
+      setTotalPages(list.totalPages || 1);
+      setStats(st);
+    } catch (e: any) {
+      setError(e.message || 'No se pudieron cargar los proyectos');
+      setProjects([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search]);
 
-  return {
-    projects: projRes.ok ? await projRes.json() : { data: [], total: 0, totalPages: 1 },
-    stats: statsRes.ok ? await statsRes.json() : null,
-  };
-}
+  useEffect(() => {
+    load();
+  }, [load]);
 
-export default async function ProjectsPage({
-  searchParams,
-}: {
-  searchParams: Record<string, string>;
-}) {
-  const { projects, stats } = await fetchProjects(searchParams);
-  const currentPage = Number(searchParams['page'] ?? 1);
-  const search = searchParams['search'] ?? '';
+  useEffect(() => setPage(1), [search]);
 
   return (
     <div className="flex h-full flex-col">
-
-      <div className="flex items-center justify-between border-b border-surface-700 px-6 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-700 px-4 py-4 sm:px-6">
         <div>
           <h1 className="text-lg font-semibold text-surface-50">Projects</h1>
           {stats && (
             <p className="text-sm text-surface-400">
-              {stats.total} total · {stats.active} active · {stats.completed} completed
+              {stats.total ?? 0} total · {stats.active ?? 0} active · {stats.completed ?? 0} completed
             </p>
           )}
         </div>
@@ -57,83 +64,67 @@ export default async function ProjectsPage({
         </Link>
       </div>
 
-      <div className="border-b border-surface-700 px-6 py-3">
-        <form>
-          <input
-            name="search"
-            defaultValue={search}
-            placeholder="Search projects…"
-            className="w-full max-w-sm rounded-md border border-surface-600 bg-surface-800 px-3 py-1.5 text-sm text-surface-50 placeholder-surface-500 outline-none focus:border-gold-500"
-          />
-        </form>
+      <div className="border-b border-surface-700 px-4 py-3 sm:px-6">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar proyectos…"
+          className="w-full max-w-sm rounded-md border border-surface-600 bg-surface-900 px-3 py-1.5 text-sm text-surface-50 placeholder-surface-500 outline-none focus:border-gold-500"
+        />
       </div>
 
-      <div className="flex-1 overflow-auto">
-        {projects.data.length === 0 ? (
-          <div className="flex items-center justify-center py-24 text-sm text-surface-500">
-            No projects found
+      <div className="flex-1 overflow-auto p-4 sm:p-6">
+        {loading && <p className="text-sm text-surface-500">Cargando…</p>}
+        {error && (
+          <p className="mb-3 rounded-md border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-300">
+            {error}
+          </p>
+        )}
+        {!loading && !error && projects.length === 0 && (
+          <div className="rounded-xl border border-surface-700 bg-surface-900 p-10 text-center">
+            <p className="text-sm text-surface-400">No hay proyectos todavía.</p>
+            <Link href="/crm/projects/new" className="mt-3 inline-block text-sm text-gold-400 hover:text-gold-300">
+              Crear el primero →
+            </Link>
           </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 border-b border-surface-700 bg-surface-900">
-              <tr>
-                {['Title', 'Client', 'Status', 'Audits', ''].map((h) => (
-                  <th key={h} className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-surface-400">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-800">
-              {projects.data.map((p: any) => (
-                <tr key={p.id} className="hover:bg-surface-800/50 transition">
-                  <td className="px-6 py-3">
-                    <Link href={`/crm/projects/${p.id}`} className="font-medium text-surface-50 hover:text-gold-400">
-                      {p.title}
-                    </Link>
-                  </td>
-                  <td className="px-6 py-3 text-surface-400">
-                    {p.client ? (
-                      <Link href={`/crm/clients/${p.client.id}`} className="hover:text-surface-200">
-                        {p.client.name}
-                      </Link>
-                    ) : '—'}
-                  </td>
-                  <td className="px-6 py-3"><StatusBadge status={p.status} /></td>
-                  <td className="px-6 py-3 text-surface-400 tabular-nums">{p._count.audits}</td>
-                  <td className="px-6 py-3">
-                    <Link href={`/crm/projects/${p.id}`} className="text-xs text-surface-500 hover:text-surface-300">
-                      View →
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        )}
+        <div className="space-y-2">
+          {projects.map((p) => (
+            <Link
+              key={p.id}
+              href={`/crm/projects/${p.id}`}
+              className="block rounded-xl border border-surface-700 bg-surface-900/80 p-4 transition hover:border-gold-500/40"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-medium text-surface-100">{p.title}</h3>
+                  <p className="mt-1 text-xs text-surface-500">
+                    {(p as any).client?.name || 'Sin cliente'} · {new Date(p.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-full bg-surface-800 px-2.5 py-1 text-xs text-surface-300">
+                  {STATUS_LABEL[p.status] || p.status}
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+        {totalPages > 1 && (
+          <div className="mt-4 flex items-center justify-between text-xs text-surface-500">
+            <span>
+              Página {page} de {totalPages}
+            </span>
+            <div className="flex gap-2">
+              <button type="button" disabled={page === 1} onClick={() => setPage((x) => x - 1)} className="rounded border border-surface-700 px-3 py-1.5 disabled:opacity-30">
+                Anterior
+              </button>
+              <button type="button" disabled={page === totalPages} onClick={() => setPage((x) => x + 1)} className="rounded border border-surface-700 px-3 py-1.5 disabled:opacity-30">
+                Siguiente
+              </button>
+            </div>
+          </div>
         )}
       </div>
-
-      {projects.totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-surface-700 px-6 py-3">
-          <p className="text-xs text-surface-500">
-            Page {currentPage} of {projects.totalPages} · {projects.total} total
-          </p>
-          <div className="flex gap-2">
-            {currentPage > 1 && (
-              <Link href={`?page=${currentPage - 1}`}
-                className="rounded-md border border-surface-600 px-3 py-1 text-xs text-surface-300 hover:bg-surface-800">
-                ← Prev
-              </Link>
-            )}
-            {currentPage < projects.totalPages && (
-              <Link href={`?page=${currentPage + 1}`}
-                className="rounded-md border border-surface-600 px-3 py-1 text-xs text-surface-300 hover:bg-surface-800">
-                Next →
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

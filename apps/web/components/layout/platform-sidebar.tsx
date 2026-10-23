@@ -12,17 +12,18 @@ const NAV_ITEMS = [
   { href: '/settings', icon: '⚙', label: 'Settings' },
 ];
 
-/** Pestañas tipo archivador en la parte superior (reemplaza el aside lateral). */
+/** Nav superior: móvil = solo iconos; md+ = icono + texto */
 export function PlatformSidebar() {
   const pathname = usePathname() || '';
 
   return (
     <header className="shrink-0 border-b border-teal-800/80 bg-[#061416]">
-      <div className="flex items-end gap-0 px-2 pt-2 overflow-x-auto">
-        <span className="mb-2 mr-3 shrink-0 self-center px-2 text-sm font-bold tracking-wide text-gold-400">
+      <div className="flex h-12 items-center gap-1 px-1.5 sm:px-3">
+        <span className="mr-1 hidden shrink-0 px-2 text-sm font-bold tracking-wide text-gold-400 xs:inline sm:mr-2 sm:inline">
           FSTail
         </span>
-        <nav className="flex items-end gap-0.5">
+        <span className="mr-1 shrink-0 px-1.5 text-sm font-bold text-gold-400 sm:hidden">FS</span>
+        <nav className="flex flex-1 items-center justify-between gap-0.5 sm:justify-start sm:gap-1">
           {NAV_ITEMS.map((item) => {
             const active =
               pathname === item.href ||
@@ -31,14 +32,16 @@ export function PlatformSidebar() {
               <a
                 key={item.href}
                 href={item.href}
-                className={`relative flex items-center gap-1.5 rounded-t-lg border border-b-0 px-3.5 py-2 text-sm whitespace-nowrap transition ${
+                title={item.label}
+                aria-label={item.label}
+                className={`flex min-w-[2.5rem] flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-sm transition sm:flex-none sm:px-3 ${
                   active
-                    ? 'z-10 border-teal-600/80 bg-surface-900 text-gold-300 -mb-px pb-2.5 shadow-[0_-2px_8px_rgba(0,0,0,0.25)]'
-                    : 'border-transparent bg-teal-950/50 text-teal-100/55 hover:bg-teal-900/50 hover:text-gold-300'
+                    ? 'bg-teal-900/80 text-gold-300'
+                    : 'text-teal-100/55 hover:bg-teal-900/50 hover:text-gold-300'
                 }`}
               >
-                <span className="text-base text-gold-500">{item.icon}</span>
-                {item.label}
+                <span className="text-lg leading-none text-gold-500 sm:text-base">{item.icon}</span>
+                <span className="hidden md:inline">{item.label}</span>
               </a>
             );
           })}
